@@ -1,12 +1,14 @@
 name: publish
-# Publishes to npm via trusted publishing (OIDC) whenever a version tag is
-# pushed. Release ritual: `npm version patch && git push --follow-tags`.
-# Requires the npm-side trusted publisher config: npmjs.com → antibody →
-# Settings → Trusted publisher → GitHub Actions → r3dbars/antibody, publish.yml
+# Publishes to npm via trusted publishing (OIDC) when the version in
+# package.json is new — so a release is just "push a version bump to main."
+# Also fires on v* tags and manual dispatch. A version already on the
+# registry is skipped, so ordinary pushes never double-publish.
+# npm-side config: npmjs.com → antibody → Settings → Trusted publisher →
+# GitHub Actions → r3dbars/antibody, publish.yml
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch: {}
 permissions:
   id-token: write   # OIDC token for npm trusted publishing
@@ -23,4 +25,13 @@ jobs:
       - run: npm install -g npm@latest   # OIDC publish needs npm >= 11.5
       - run: npm install --no-audit --no-fund
       - run: npm test
-      - run: npm publish
+      - name: skip if version already published
+        id: check
+        run: |
+          PUBLISHED=$(npm view antibody version 2>/dev/null || echo none)
+          CURRENT=$(node -p "require('./package.json').version")
+          echo "published=$PUBLISHED current=$CURRENT"
+          if [ "$PUBLISHED" = "$CURRENT" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+      - name: publish
+        if: steps.check.outputs.skip != 'true'
+        run: npm publish
