@@ -1,0 +1,36 @@
+{
+  "name": "antibody",
+  "version": "0.1.0",
+  "description": "An immune system for your AI agent. Flag a failure once — catch it forever.",
+  "type": "module",
+  "bin": {
+    "antibody": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "ui",
+    "spec",
+    "skills",
+    "examples"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "evals",
+    "llm",
+    "agents",
+    "testing",
+    "error-analysis",
+    "failure-modes",
+    "ci"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "yaml": "^2.6.0"
+  }
+}
