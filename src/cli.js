@@ -2,6 +2,7 @@
 // antibody — an immune system for your AI agent.
 // Seven commands, plain files, no daemon. `antibody help` for usage.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initWorkspace, saveTrace, appendVerdict, ROOT_DIR } from './store.js';
@@ -16,6 +17,8 @@ Flag a failure once. Catch it forever.
 
 usage: antibody <command> [args]
 
+  demo                       watch antibody catch a mistake in sample traces
+                             (throwaway folder, no API key, nothing to clean up)
   init                       create .antibody/ (config, registry, verdicts, scans)
   import <files...>          normalize + fingerprint traces into the workspace
   review [--port N]          open the human review queue on localhost
@@ -84,6 +87,30 @@ async function main() {
   const asJson = Boolean(args.flags.json);
 
   switch (cmd) {
+    case 'demo': {
+      // The whole loop in one command: throwaway workspace, bundled sample
+      // traces, one real catch. FM-001 is a rule checker, so no API key.
+      const pkgRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antibody-demo-'));
+      process.chdir(dir);
+      initWorkspace();
+      const imported = importTraces([path.join(pkgRoot, 'examples', 'traces')]);
+      const registrySrc = path.join(pkgRoot, 'examples', 'registry');
+      const fms = fs.readdirSync(registrySrc).sort();
+      for (const f of fms) fs.copyFileSync(path.join(registrySrc, f), path.join(ROOT_DIR, 'registry', f));
+      const summary = await scan({});
+      process.exitCode = summary.exitCode;
+      if (asJson) return console.log(JSON.stringify({ playground: dir, ...summary }));
+      console.log('antibody demo — sample conversations from a fictional support agent,');
+      console.log('scanned against a registry of two flagged failure modes\n');
+      console.log(`  ✓ imported ${imported.added} sample conversations`);
+      console.log(`  ✓ loaded ${fms.length} failure modes (playground: ${dir})\n`);
+      console.log(renderScanReport(summary));
+      console.log('\nThat exit 1 is the point: once a mistake is flagged, its return blocks the');
+      console.log('build. Try it on your own agent:\n');
+      console.log('  cd your-agent-project && npx antibody init');
+      return;
+    }
     case 'init': {
       const created = initWorkspace();
       if (asJson) return console.log(JSON.stringify({ created }));

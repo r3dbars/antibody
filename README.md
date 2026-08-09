@@ -27,15 +27,13 @@ antibody gives your agent a memory for its mistakes:
 No metrics to invent. No test cases to imagine. No dashboard to babysit.
 If you can read a conversation and say *"that's wrong,"* you can do this.
 
-## Try it in 60 seconds (no API key needed)
+## Try it in 30 seconds
+
+One command. No install, no API key, no cleanup — it plays out in a
+throwaway folder:
 
 ```sh
-git clone https://github.com/r3dbars/antibody && cd antibody && npm install
-mkdir playground && cd playground
-node ../src/cli.js init
-node ../src/cli.js import ../examples/traces
-cp ../examples/registry/*.md .antibody/registry/
-node ../src/cli.js scan
+npx antibody demo
 ```
 
 You'll watch antibody catch a real mistake in a sample conversation and
@@ -49,11 +47,15 @@ RESULT: known failure modes recurred — exit 1
 
 ## Use it on your own agent
 
-No install — `npx` fetches it:
+Setup is one command (`npx` fetches antibody, nothing to install):
 
 ```sh
-cd your-agent-project
-npx antibody init          # set up (once) — creates a .antibody/ folder
+cd your-agent-project && npx antibody init
+```
+
+Then the loop, whenever you have fresh conversations:
+
+```sh
 npx antibody import logs/  # bring in your agent's conversations
 npx antibody review        # flip through them, flag what's bad
 npx antibody distill       # your flags become named failure patterns

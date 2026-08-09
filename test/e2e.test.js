@@ -74,3 +74,12 @@ test('full keyless loop: init, import, verdict, scan, calibrate', () => {
 
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('demo: one keyless command catches FM-001 and exits 1', () => {
+  const out = run(os.tmpdir(), ['demo'], { expectExit: 1 });
+  assert.match(out, /FM-001 over-apology — 1 hit/);
+  assert.match(out, /RESULT: known failure modes recurred — exit 1/);
+  const playground = out.match(/playground: ([^)]+)\)/)[1];
+  assert.ok(fs.existsSync(path.join(playground, '.antibody', 'registry')));
+  fs.rmSync(playground, { recursive: true, force: true });
+});
