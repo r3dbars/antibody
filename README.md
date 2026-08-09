@@ -1,5 +1,9 @@
 # 🚩 antibody
 
+[![npm](https://img.shields.io/npm/v/antibody)](https://www.npmjs.com/package/antibody)
+[![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **An immune system for your AI agent. Flag a failure once — catch it forever.**
 
 You read a handful of your agent's conversations and flag what looks wrong —
@@ -52,7 +56,18 @@ node ../src/cli.js scan          # ✗ FM-001 over-apology — 1 hit → exit 1
 With `ANTHROPIC_API_KEY` set, judge-type failure modes run too, and
 `antibody review` opens the flip-through review queue on localhost.
 
-Once published to npm it's `npx antibody <command>` — no clone needed.
+## Use it in your project
+
+No install needed — `npx` fetches it from npm:
+
+```sh
+cd your-agent-project
+npx antibody init                  # creates .antibody/ (commit it)
+npx antibody import ./your-logs    # fingerprint + snapshot traces
+npx antibody review                # flip through, flag what's bad
+npx antibody distill               # draft failure modes from your flags
+npx antibody scan                  # check everything, exit 1 on regressions
+```
 
 ## Commands
 

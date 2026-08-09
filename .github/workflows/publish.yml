@@ -1,0 +1,25 @@
+name: publish
+# Publishes to npm via trusted publishing (OIDC) whenever a version tag is
+# pushed. Release ritual: `npm version patch && git push --follow-tags`.
+# Requires the npm-side trusted publisher config: npmjs.com → antibody →
+# Settings → Trusted publisher → GitHub Actions → r3dbars/antibody, publish.yml
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  id-token: write   # OIDC token for npm trusted publishing
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest   # OIDC publish needs npm >= 11.5
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm publish
