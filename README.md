@@ -6,43 +6,28 @@
 
 **An immune system for your AI agent. Flag a failure once — catch it forever.**
 
-You read a handful of your agent's conversations and flag what looks wrong —
-plain English, no metrics, no scorer code. antibody turns each flag into a
-permanent defense: a named failure mode checked against every future run, the
-way your immune system remembers every infection it has ever beaten.
+![How antibody works: traces → you flag it → registry in git → every future run scanned](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/loop.png)
 
-- **No runner.** Traces in, verdicts out. Works with whatever produces your
-  transcripts (promptfoo, Mastra, Inspect, plain logs) instead of competing
-  with it.
-- **No homework.** The only human input is "read this conversation, say
-  what's wrong." Everything else — taxonomy, judges, CI gates — is derived.
-- **Local-first.** Plain files, your own API key, MIT. Private traces never
-  leave your machine. There is no database and no server: the registry and
-  verdicts are small text files committed to git, so **team sync is `git pull`**.
-- **Agent-first.** Every command emits `--json`; shipped [skills](skills/)
-  teach Claude Code (or any coding agent) to run the whole loop — and the scan
-  report is structured food for an agent that fixes what broke.
+## The idea
 
-## The loop
+Your AI agent makes mistakes. Today you find them by luck, fix them, and hope
+they stay fixed. They don't.
 
-```
-your agent's logs                                (any JSON/JSONL transcripts)
-   │  antibody import
-   ▼
-review — flip through, flag what's bad           (browser UI, chat, or CLI)
-   │  antibody distill
-   ▼
-registry — named failure modes in git            (.antibody/registry/FM-*.md)
-   │  antibody scan            ← every future run, CI and nightly
-   ▼
-report + exit code — "FM-001 hit 4× (last week: 0)"
-```
+antibody gives your agent a memory for its mistakes:
 
-Every failure mode is born from a real incident, carries its example traces,
-and shows how often its checker agrees with human judgment. When someone asks
-"why do we test for this?", the answer is a file in git, not a shrug.
+1. **Read a few of your agent's conversations** and flag the bad ones, in
+   plain English — *"it made up a date"*, *"it ignored the error"*. That's
+   the only work you ever do.
+2. **antibody turns each flag into a named failure pattern** — a permanent
+   record in your project, with the real conversations that prove it.
+3. **Every future conversation gets checked against every pattern you've
+   ever flagged.** When an old mistake sneaks back in, the check fails —
+   loudly, before your users find it.
 
-## Quickstart (60 seconds, no API key)
+No metrics to invent. No test cases to imagine. No dashboard to babysit.
+If you can read a conversation and say *"that's wrong,"* you can do this.
+
+## Try it in 60 seconds (no API key needed)
 
 ```sh
 git clone https://github.com/r3dbars/antibody && cd antibody && npm install
@@ -50,85 +35,60 @@ mkdir playground && cd playground
 node ../src/cli.js init
 node ../src/cli.js import ../examples/traces
 cp ../examples/registry/*.md .antibody/registry/
-node ../src/cli.js scan          # ✗ FM-001 over-apology — 1 hit → exit 1
+node ../src/cli.js scan
 ```
 
-With `ANTHROPIC_API_KEY` set, judge-type failure modes run too, and
-`antibody review` opens the flip-through review queue on localhost.
+You'll watch antibody catch a real mistake in a sample conversation and
+refuse to pass the build:
 
-## Use it in your project
+```
+✗ FM-001 over-apology — 1 hit
+    tr-55fce8dd6320 line 4: "sorry about that! I sincerely apologize"
+RESULT: known failure modes recurred — exit 1
+```
 
-No install needed — `npx` fetches it from npm:
+## Use it on your own agent
+
+No install — `npx` fetches it:
 
 ```sh
 cd your-agent-project
-npx antibody init                  # creates .antibody/ (commit it)
-npx antibody import ./your-logs    # fingerprint + snapshot traces
-npx antibody review                # flip through, flag what's bad
-npx antibody distill               # draft failure modes from your flags
-npx antibody scan                  # check everything, exit 1 on regressions
+npx antibody init          # set up (once) — creates a .antibody/ folder
+npx antibody import logs/  # bring in your agent's conversations
+npx antibody review        # flip through them, flag what's bad
+npx antibody distill       # your flags become named failure patterns
+npx antibody scan          # check everything — fails CI if a mistake returns
 ```
 
-## Commands
+Add that last line to your CI, point it at production logs on a nightly
+schedule, and every mistake anyone on your team has ever flagged is watched
+for, forever.
 
-| command | what it does |
-|---|---|
-| `antibody init` | create `.antibody/` (config, registry, verdicts, scans) |
-| `antibody import <files>` | normalize + fingerprint traces (idempotent; same conversation → same id on every machine) |
-| `antibody review` | localhost review queue — keyboard-driven, team-aware ("you 9 · sarah 5 · 18 unclaimed") |
-| `antibody verdict <id> bad\|ok` | record a verdict from a terminal or an agent |
-| `antibody distill` | draft failure modes from your flags (status `proposed` — you approve via git diff) |
-| `antibody scan [files]` | check every trace against every active mode; exit 1 when a **watching** mode hits |
-| `antibody calibrate` | judge-vs-human agreement, TPR/TNR, and promotion suggestions |
+## How it stays honest
 
-## The trust ladder
+Automated checkers can be wrong, so antibody makes each one **earn trust
+before it can block anyone's work**. A new pattern starts as a draft, then
+runs in report-only mode while antibody measures how often its verdicts
+match yours (`npx antibody calibrate` shows the score). Only when you
+promote it — by editing one line in its file and committing — can it fail a
+build. Your judgment stays the ground truth; the robots just scale it.
 
-Failure modes climb `proposed → calibrating → watching`, and **only `watching`
-modes can fail CI**. A checker earns `watching` by agreeing with your labels
-(`antibody calibrate` shows agreement, and TPR/TNR separately — a judge that
-always says "clean" scores 95% agreement and 0% TPR, and antibody will tell
-you so). Promotion is you editing one line in a git-tracked file: reviewable,
-revertable, never tool magic.
+## Working with a team
 
-## CI
+Everything antibody knows lives in small text files committed to git — the
+pattern registry, everyone's verdicts, the scan history. Sharing state with
+your team is `git pull`. No server, no accounts, and your conversations
+never leave your machines.
 
-```yaml
-- run: npm run agent:testset          # produce traces however you already do
-- run: npx antibody scan ./traces/    # fails the build if a known mistake returns
-  env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-```
+## Want to go deeper?
 
-Point the same command at yesterday's production traces on a nightly cron and
-you have both deployment points: *"did this PR re-break anything we've ever
-flagged?"* and *"is anything we've ever flagged happening to real users right
-now?"*
+- [`spec/`](spec/) — the three tiny file formats everything is built on
+- [`skills/`](skills/) — teach Claude Code (or any coding agent) to run the
+  whole loop for you
+- The methodology behind it: [Hamel Husain & Shreya Shankar's evals
+  FAQ](https://hamel.dev/blog/posts/evals-faq/) — antibody is their
+  error-analysis loop, packaged. Directly inspired by Shreya's
+  [error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill);
+  antibody imports its annotations (`npx antibody import --annotations`).
 
-## File formats are the product
-
-The tool is just the nicest way to work with three tiny formats, specified in
-[`spec/`](spec/):
-
-- [`spec/trace.md`](spec/trace.md) — normalized traces + the content
-  fingerprint that gives every machine the same trace ids
-- [`spec/registry.md`](spec/registry.md) — failure modes as Markdown files
-  with YAML frontmatter
-- [`spec/verdicts.md`](spec/verdicts.md) — append-only JSONL, one file per
-  reviewer, conflict-free by construction
-
-Anything that reads and writes these files is part of the ecosystem.
-
-## Credits & lineage
-
-antibody packages the error-analysis methodology taught by
-[Hamel Husain and Shreya Shankar](https://hamel.dev/blog/posts/evals-faq/)
-(look at your data → open coding → axial coding → narrow judges → measure
-judge-human agreement), and is directly inspired by Shreya's
-[error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill),
-which pioneered agent-driven trace review. Her skill is a brilliant discovery
-*session*; antibody is where discoveries become permanent immunity —
-`antibody import --annotations annotations.json` accepts its output.
-
-## License
-
-MIT
+MIT licensed. Free forever.
