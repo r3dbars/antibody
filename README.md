@@ -39,11 +39,7 @@ npx antibody demo
 You'll watch antibody catch a real mistake in a sample conversation and
 refuse to pass the build:
 
-```
-✗ FM-001 over-apology — 1 hit
-    tr-55fce8dd6320 line 4: "sorry about that! I sincerely apologize"
-RESULT: known failure modes recurred — exit 1
-```
+![npx antibody demo — antibody imports sample conversations, catches an over-apology failure with the exact quote and line number, and exits 1](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/demo.gif)
 
 ## Use it on your own agent
 
@@ -61,6 +57,10 @@ npx antibody review        # flip through them, flag what's bad
 npx antibody distill       # your flags become named failure patterns
 npx antibody scan          # check everything — fails CI if a mistake returns
 ```
+
+Using Claude Code or another coding agent? Skip the commands entirely — this
+repo ships [`skills/`](skills/) that teach your agent the whole loop. Just
+say: *"install antibody in this project and review my agent's traces."*
 
 Add that last line to your CI, point it at production logs on a nightly
 schedule, and every mistake anyone on your team has ever flagged is watched
