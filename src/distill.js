@@ -14,7 +14,7 @@ const PROPOSAL_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'short kebab-case name, e.g. fabricated-dates' },
+          name: { type: 'string', description: 'kebab-case name that states the mistake so plainly a stranger gets it without context — describe the observable behavior (invents-dates-not-in-sources, replies-instead-of-continuing), never theory jargon (role-confusion, context-leakage)' },
           description: { type: 'string', description: '1-3 sentences defining exactly when this failure occurs' },
           judge_prompt: { type: 'string', description: 'one precise yes/no question a narrow inspector should answer about a transcript' },
           example_traces: { type: 'array', items: { type: 'string' }, description: 'trace ids from the input that show this failure' },

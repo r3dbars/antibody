@@ -35,7 +35,10 @@ drafts they approve via git diff.
    - If it matches a known FM, add `--fm FM-###`.
    Prefer the human's own phrasing for notes — their words are the ground truth.
 5. **Distill when patterns emerge** (≥2-3 similar flags): propose the failure
-   mode in chat first (name + one-line definition). If the human agrees,
+   mode in chat first (name + one-line definition). Name it so plainly a
+   stranger gets it without context — state the observable mistake
+   (`invents-dates-not-in-sources`, `replies-instead-of-continuing`), never
+   theory jargon (`role-confusion`, `hallucination`). If the human agrees,
    either run `antibody distill` or write the FM file yourself in
    `.antibody/registry/` following `spec/registry.md` — status `proposed`,
    their flagged traces as `examples`. Never create it with status `watching`.
