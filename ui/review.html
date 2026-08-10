@@ -52,6 +52,14 @@
   .msg.system .bubble {
     background: none; border: none; padding: 0; color: var(--muted); font-size: .85rem;
   }
+  /* "outcome:" system lines are the key evidence — promote them */
+  .msg.outcome { margin: 1.1rem 0; }
+  .msg.outcome .who { display: block; color: var(--ink); }
+  .msg.outcome .bubble {
+    background: var(--card); border: 1px solid var(--line);
+    border-left: 3px solid var(--good); border-radius: 10px;
+    padding: .65rem .85rem; color: var(--ink); font-size: 1rem;
+  }
 
   /* robot suggestion card */
   .suggestion {
@@ -191,10 +199,12 @@
       html += `<div class="already">already answered by ${meta.reviewers.map((r) => `${r.by} (${r.verdict === 'bad' ? 'wrong' : 'fine'})`).join(', ')}</div>`;
     }
     trace.messages.forEach((m) => {
-      const who = WHO[m.role] ?? m.role;
-      html += `<div class="msg ${m.role}">` +
+      const outcome = m.role === 'system' && /^outcome:\s*/i.test(m.content);
+      const who = outcome ? 'What actually happened' : (WHO[m.role] ?? m.role);
+      const content = outcome ? m.content.replace(/^outcome:\s*/i, '') : m.content;
+      html += `<div class="msg ${outcome ? 'outcome' : m.role}">` +
         (who ? `<div class="who">${who}</div>` : '') +
-        `<div class="bubble">${escapeHtml(m.content)}</div></div>`;
+        `<div class="bubble">${escapeHtml(content)}</div></div>`;
     });
     for (const s of state.suggestions[meta.id] || []) {
       // hide rule internals ("— matched /…/") behind a tooltip; lead with the quote
