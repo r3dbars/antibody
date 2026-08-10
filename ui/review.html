@@ -6,113 +6,135 @@
 <title>antibody review</title>
 <style>
   :root {
-    --bg: #f2f4f6; --card: #ffffff; --ink: #1c2733; --muted: #5c6c7c;
-    --line: #d8dee4; --accent: #d14d1f; --accent-soft: #fbe9e0;
-    --good: #23744f; --bad: #b93b3b;
+    --bg: #f4f5f7; --card: #ffffff; --ink: #1c2733; --muted: #6b7a89;
+    --line: #dde3e9; --accent: #d14d1f; --accent-soft: #fdf1ea;
+    --good: #23744f; --good-soft: #ecf6f1; --bad: #b93b3b; --bad-soft: #fbeeee;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0f161d; --card: #161f28; --ink: #e7ecf1; --muted: #8fa0af;
-      --line: #2a3540; --accent: #f0703f; --accent-soft: #35231b;
-      --good: #4fbe8c; --bad: #e36a6a;
+      --line: #2a3540; --accent: #f0703f; --accent-soft: #33231c;
+      --good: #4fbe8c; --good-soft: #1a2b24; --bad: #e36a6a; --bad-soft: #301d1d;
     }
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.55 ui-sans-serif, system-ui, sans-serif;
+    font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
   }
-  .wrap { max-width: 780px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 1.4rem 1.2rem 5rem; }
+
   header {
     display: flex; justify-content: space-between; align-items: baseline;
-    gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
-    font-family: ui-monospace, monospace; font-size: .8rem; color: var(--muted);
+    gap: 1rem; flex-wrap: wrap;
   }
-  header b { color: var(--accent); font-size: .95rem; }
-  .msg { display: flex; gap: .6rem; margin-bottom: .7rem; }
-  .who {
-    flex: 0 0 4.6rem; font-family: ui-monospace, monospace; font-size: .68rem;
-    text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
-    padding-top: .45rem; text-align: right;
+  header .brand { font-family: ui-monospace, monospace; font-weight: 700; color: var(--accent); }
+  header .brand span { color: var(--muted); font-weight: 400; }
+  #progress { font-size: .85rem; color: var(--muted); }
+
+  .question { margin: 1.6rem 0 .2rem; font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .hint { color: var(--muted); font-size: .9rem; margin-bottom: 1.4rem; }
+
+  /* the conversation */
+  .msg { margin: 0 0 1rem; }
+  .msg .who {
+    font-size: .72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); margin-bottom: .2rem;
   }
-  .bubble {
-    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
-    padding: .5rem .75rem; white-space: pre-wrap; word-break: break-word;
-    min-width: 0; flex: 1;
+  .msg .bubble {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: .65rem .85rem; white-space: pre-wrap; word-break: break-word;
   }
-  .msg.assistant .bubble { border-left: 3px solid var(--line); }
-  .msg .lineno { color: var(--muted); font-family: ui-monospace, monospace; font-size: .7rem; margin-right: .4rem; }
-  .panel {
-    position: sticky; bottom: 0; background: var(--bg);
-    border-top: 1px solid var(--line); padding: .8rem 0 .4rem; margin-top: 1.2rem;
+  .msg.assistant .who { color: var(--accent); }
+  .msg.assistant .bubble { border-left: 3px solid var(--accent); }
+  .msg.system { margin: 0 0 .8rem; }
+  .msg.system .who { display: none; }
+  .msg.system .bubble {
+    background: none; border: none; padding: 0; color: var(--muted); font-size: .85rem;
   }
-  .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-  input[type=text], select {
-    flex: 1; min-width: 200px; background: var(--card); color: var(--ink);
-    border: 1px dashed var(--accent); border-radius: 8px; padding: .5rem .7rem;
-    font: inherit;
-  }
-  select { flex: 0 1 auto; border-style: solid; border-color: var(--line); }
-  button {
-    font: inherit; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--card); color: var(--ink); padding: .5rem .9rem; cursor: pointer;
-  }
-  button.bad { border-color: var(--bad); color: var(--bad); font-weight: 700; }
-  button.ok { border-color: var(--good); color: var(--good); font-weight: 700; }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .keys {
-    margin-top: .5rem; font-family: ui-monospace, monospace; font-size: .72rem;
-    color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap;
-  }
-  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; background: var(--card); }
+
+  /* robot suggestion card */
   .suggestion {
     border: 1.5px dashed var(--accent); background: var(--accent-soft);
-    border-radius: 8px; padding: .6rem .8rem; margin: .8rem 0;
+    border-radius: 10px; padding: .8rem .9rem; margin: 1.2rem 0;
   }
   .suggestion .tag {
-    font-family: ui-monospace, monospace; font-size: .68rem; text-transform: uppercase;
-    letter-spacing: .07em; color: var(--accent); display: block; margin-bottom: .25rem;
+    font-size: .72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--accent); margin-bottom: .3rem;
   }
-  .suggestion .reason { color: var(--muted); font-size: .85rem; }
-  .suggestion .row { margin-top: .5rem; }
+  .suggestion .claim { margin-bottom: .1rem; }
+  .suggestion .quote { color: var(--muted); font-size: .9rem; }
+  .suggestion .row { margin-top: .6rem; }
+
+  /* controls */
+  .panel {
+    position: sticky; bottom: 0; background: var(--bg);
+    border-top: 1px solid var(--line); padding: .9rem 0 .5rem; margin-top: 1.6rem;
+  }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  button {
+    font: inherit; font-size: .95rem; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); color: var(--ink); padding: .55rem 1rem; cursor: pointer;
+  }
+  button.bad { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); font-weight: 700; }
+  button.ok { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 700; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input[type=text] {
+    flex: 1; min-width: 220px; background: var(--card); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .75rem; font: inherit; font-size: .95rem;
+  }
+  select {
+    background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: .55rem .6rem; font: inherit; font-size: .9rem; max-width: 15rem;
+  }
+  .keys {
+    margin-top: .6rem; font-size: .78rem; color: var(--muted);
+    display: flex; gap: 1rem; flex-wrap: wrap;
+  }
+  kbd {
+    font-family: ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 .35em; background: var(--card);
+  }
   .toast {
     position: fixed; top: .8rem; right: .8rem; background: var(--accent-soft);
-    color: var(--ink); border: 1px solid var(--accent); border-radius: 8px;
-    padding: .4rem .8rem; font-size: .85rem; opacity: 0; transition: opacity .2s;
+    color: var(--ink); border: 1px solid var(--accent); border-radius: 10px;
+    padding: .45rem .85rem; font-size: .9rem; opacity: 0; transition: opacity .2s;
     pointer-events: none;
   }
   .toast.show { opacity: 1; }
-  .done { text-align: center; color: var(--muted); padding: 4rem 0; }
-  .reviewed-note { color: var(--muted); font-size: .78rem; margin-bottom: .6rem; }
-  @media (max-width: 540px) {
-    .msg { flex-direction: column; gap: .15rem; }
-    .who { text-align: left; padding-top: 0; flex-basis: auto; }
-  }
+  .done { text-align: center; color: var(--muted); padding: 4rem 0; font-size: 1.05rem; }
+  .already { color: var(--muted); font-size: .82rem; margin-bottom: .8rem; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <span><b>&#9873; antibody</b> review</span>
+    <span class="brand">&#9873; antibody <span>review</span></span>
     <span id="progress">loading…</span>
   </header>
+
+  <div class="question">Did the AI get this wrong?</div>
+  <div class="hint">Read the exchange, then answer below. Unsure? Skip it with <kbd>j</kbd> — only confident answers count.</div>
+
   <main id="trace"></main>
+
   <div class="panel">
     <div class="row">
-      <button class="bad" id="btn-bad" title="f">✗ flag (f)</button>
-      <button class="ok" id="btn-ok" title="o">✓ looks fine (o)</button>
-      <select id="fm" title="attribute to a known failure mode (optional)">
-        <option value="">no known FM</option>
+      <button class="bad" id="btn-bad" title="keyboard: f">✗ Something's wrong</button>
+      <button class="ok" id="btn-ok" title="keyboard: o">✓ Looks fine</button>
+      <select id="fm" title="If this is a mistake you've already named, pick it — that teaches its checker.">
+        <option value="">a named mistake? (optional)</option>
       </select>
     </div>
     <div class="row" style="margin-top:.5rem">
-      <input type="text" id="note" placeholder="one-line note — what's wrong here? (n to focus)">
+      <input type="text" id="note" placeholder="what's wrong, in your own words? (optional)">
     </div>
     <div class="keys">
-      <span><kbd>f</kbd> flag</span><span><kbd>o</kbd> fine</span>
-      <span><kbd>a</kbd>/<kbd>x</kbd> suggestion yes/no</span>
-      <span><kbd>n</kbd> note</span><span><kbd>j</kbd>/<kbd>k</kbd> next/prev</span>
-      <span><kbd>u</kbd> show reviewed too</span>
+      <span><kbd>f</kbd> wrong</span><span><kbd>o</kbd> fine</span>
+      <span><kbd>a</kbd>/<kbd>x</kbd> answer the checker</span>
+      <span><kbd>n</kbd> note</span><span><kbd>j</kbd>/<kbd>k</kbd> skip / back</span>
+      <span><kbd>u</kbd> include answered</span>
     </div>
   </div>
 </div>
@@ -121,13 +143,16 @@
   let state = null, queue = [], idx = 0, showReviewed = false;
   const $ = (id) => document.getElementById(id);
 
+  // Plain-words labels for the technical role names in stored traces.
+  const WHO = { user: 'They wrote', assistant: 'The AI said', tool: 'Tool result', system: '' };
+
   async function load() {
     state = await (await fetch('/api/state')).json();
     const fmSel = $('fm');
     fmSel.length = 1;
     for (const fm of state.fms) {
       const o = document.createElement('option');
-      o.value = fm.id; o.textContent = `${fm.id} ${fm.name}`;
+      o.value = fm.id; o.textContent = fm.name.replaceAll('-', ' ');
       fmSel.append(o);
     }
     rebuildQueue();
@@ -138,66 +163,51 @@
     const mine = (t) => t.reviewers.some((r) => r.by === state.me);
     const anyone = (t) => t.reviewers.length > 0;
     queue = state.traces.filter((t) => showReviewed ? true : !anyone(t));
-    // suggestions first (they unblock calibration), then unclaimed, teammates', mine
+    // checker questions first (they unblock calibration), then unanswered
     const hasSug = (t) => (state.suggestions[t.id] || []).length > 0;
     queue.sort((a, b) => (hasSug(b) - hasSug(a)) || (anyone(a) - anyone(b)) || (mine(a) - mine(b)));
     idx = Math.min(idx, Math.max(0, queue.length - 1));
   }
 
   async function render() {
-    const counts = { me: 0, others: 0, unclaimed: 0 };
-    const others = new Set();
-    for (const t of state.traces) {
-      const byMe = t.reviewers.some((r) => r.by === state.me);
-      const byOther = t.reviewers.some((r) => r.by !== state.me);
-      if (byMe) counts.me++;
-      if (byOther) { counts.others++; t.reviewers.forEach((r) => r.by !== state.me && others.add(r.by)); }
-      if (!t.reviewers.length) counts.unclaimed++;
-    }
-    const otherLabel = others.size ? [...others].join(', ') : 'teammates';
+    let answered = 0;
+    for (const t of state.traces) if (t.reviewers.some((r) => r.by === state.me)) answered++;
     const sugCount = Object.values(state.suggestions).reduce((n, arr) => n + arr.length, 0);
-    $('progress').textContent =
-      `you ${counts.me} · ${otherLabel} ${counts.others} · ${counts.unclaimed} unclaimed` +
-      (sugCount ? ` · ${sugCount} suggestions` : '');
+    $('progress').textContent = queue.length
+      ? `${idx + 1} of ${queue.length} to review · ${answered} answered` +
+        (sugCount ? ` · ${sugCount} checker questions` : '')
+      : `${answered} answered`;
 
     const main = $('trace');
     if (!queue.length) {
-      main.innerHTML = '<div class="done">queue clear — every trace has a verdict.<br>next: <code>antibody distill</code> (or press <b>u</b> to re-review)</div>';
+      main.innerHTML = '<div class="done">All done — everything here has your answer.<br>' +
+        'More arrives next time traces are imported. (<kbd>u</kbd> revisits answered ones.)</div>';
       return;
     }
     const meta = queue[idx];
     const trace = await (await fetch('/api/trace?id=' + meta.id)).json();
-    let html = `<div class="reviewed-note">${meta.id} · ${trace.source || ''} · ${idx + 1} of ${queue.length}` +
-      (meta.reviewers.length ? ` · already reviewed by ${meta.reviewers.map((r) => `${r.by} (${r.verdict})`).join(', ')}` : '') + '</div>';
-    trace.messages.forEach((m, i) => {
-      html += `<div class="msg ${m.role}"><div class="who">${m.role}</div>` +
-        `<div class="bubble"><span class="lineno">${i + 1}</span>${escapeHtml(m.content)}</div></div>`;
+    let html = '';
+    if (meta.reviewers.length) {
+      html += `<div class="already">already answered by ${meta.reviewers.map((r) => `${r.by} (${r.verdict === 'bad' ? 'wrong' : 'fine'})`).join(', ')}</div>`;
+    }
+    trace.messages.forEach((m) => {
+      const who = WHO[m.role] ?? m.role;
+      html += `<div class="msg ${m.role}">` +
+        (who ? `<div class="who">${who}</div>` : '') +
+        `<div class="bubble">${escapeHtml(m.content)}</div></div>`;
     });
     for (const s of state.suggestions[meta.id] || []) {
-      html += `<div class="suggestion"><span class="tag">agent suggestion · ${escapeHtml(s.by)}</span>` +
-        `<b>${s.fm} ${escapeHtml(s.name)}</b> <span class="reason">${escapeHtml(s.reason || '')}</span>` +
-        `<div class="row"><button class="bad" onclick="resolveSuggestion('${meta.id}','${s.fm}','accept')">✗ agree — flag as ${s.fm} (a)</button>` +
-        `<button onclick="resolveSuggestion('${meta.id}','${s.fm}','dismiss')">not this pattern (x)</button></div></div>`;
+      // hide rule internals ("— matched /…/") behind a tooltip; lead with the quote
+      const quote = (s.reason || '').replace(/\s*—\s*matched \/.*\/$/, '');
+      html += `<div class="suggestion" title="${escapeHtml(s.reason || '')}">` +
+        `<div class="tag">the checker has a question</div>` +
+        `<div class="claim">This looks like <b>${escapeHtml(s.name.replaceAll('-', ' '))}</b> — a mistake you've flagged before.</div>` +
+        (quote ? `<div class="quote">It noticed: ${escapeHtml(quote)}</div>` : '') +
+        `<div class="row"><button class="bad" onclick="resolveSuggestion('${meta.id}','${s.fm}','accept')">Yes, that mistake</button>` +
+        `<button onclick="resolveSuggestion('${meta.id}','${s.fm}','dismiss')">No, it's not</button></div></div>`;
     }
     main.innerHTML = html;
     window.scrollTo(0, 0);
-  }
-
-  async function resolveSuggestion(traceId, fm, action) {
-    await fetch('/api/suggestion', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ trace: traceId, fm, action, note: $('note').value.trim() }),
-    });
-    const list = state.suggestions[traceId] || [];
-    state.suggestions[traceId] = list.filter((s) => s.fm !== fm);
-    toast(action === 'accept' ? `✗ flagged as ${fm} — ${traceId}` : `dismissed ${fm} — ${traceId}`);
-    $('note').value = '';
-    if (action === 'accept') {
-      const t = state.traces.find((t) => t.id === traceId);
-      if (t) t.reviewers.push({ by: state.me, verdict: 'bad' });
-      if (!showReviewed) { rebuildQueue(); }
-    }
-    render();
   }
 
   function escapeHtml(s) {
@@ -211,11 +221,28 @@
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ trace: t.id, verdict, note: $('note').value.trim(), fm: $('fm').value || null }),
     });
-    toast(`${verdict === 'bad' ? '✗ flagged' : '✓ fine'} — ${t.id}`);
+    toast(verdict === 'bad' ? '✗ marked wrong' : '✓ marked fine');
     $('note').value = ''; $('fm').value = '';
     t.reviewers.push({ by: state.me, verdict });
     if (!showReviewed) { queue.splice(idx, 1); idx = Math.min(idx, queue.length - 1); }
     else idx = Math.min(idx + 1, queue.length - 1);
+    render();
+  }
+
+  async function resolveSuggestion(traceId, fm, action) {
+    await fetch('/api/suggestion', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ trace: traceId, fm, action, note: $('note').value.trim() }),
+    });
+    const list = state.suggestions[traceId] || [];
+    state.suggestions[traceId] = list.filter((s) => s.fm !== fm);
+    toast(action === 'accept' ? '✗ marked wrong — the checker was right' : 'noted — not that mistake');
+    $('note').value = '';
+    if (action === 'accept') {
+      const t = state.traces.find((t) => t.id === traceId);
+      if (t) t.reviewers.push({ by: state.me, verdict: 'bad' });
+      if (!showReviewed) rebuildQueue();
+    }
     render();
   }
 
@@ -241,7 +268,7 @@
     else if (e.key === 'n') { e.preventDefault(); $('note').focus(); }
     else if (e.key === 'j') { idx = Math.min(idx + 1, queue.length - 1); render(); }
     else if (e.key === 'k') { idx = Math.max(idx - 1, 0); render(); }
-    else if (e.key === 'u') { showReviewed = !showReviewed; rebuildQueue(); render(); toast(showReviewed ? 'showing reviewed traces too' : 'unreviewed only'); }
+    else if (e.key === 'u') { showReviewed = !showReviewed; rebuildQueue(); render(); toast(showReviewed ? 'including answered ones' : 'unanswered only'); }
   });
 
   load();
