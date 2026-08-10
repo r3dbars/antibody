@@ -4,92 +4,93 @@
 [![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**AI evals made simple.** An immune system for your AI agent: flag a failure
-once — catch it forever.
+**AI evals made simple.** You flag a bad AI conversation once, and antibody
+catches that mistake every time it tries to come back.
 
 ![How antibody works: traces → you flag it → registry in git → every future run scanned](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/loop.png)
 
-## Evals are hard. Starting them shouldn't be.
+## The short version
 
-Everyone says "you need evals." Then you look at what that means: invent
-metrics, build golden datasets, write judge prompts, label thousands of
-examples, stand up a dashboard. It's a lot — so most people do nothing, and
-their agent's mistakes ship silently, again and again.
+Everyone says you need evals for your AI product. Then you go look at what
+that actually involves — metrics, golden datasets, judge prompts, labeling
+thousands of examples, some dashboard to maintain — and you quietly close
+the tab. Meanwhile your agent keeps making the same mistakes, and nobody
+notices until a user does.
 
-antibody is the simple way in. You start with the one skill you already
-have — reading a conversation and saying *"that's wrong"* — and a real eval
-suite grows underneath you:
+antibody skips all of that and starts from the one thing you can already
+do: read a conversation and tell when something's off.
 
-1. **Read a few of your agent's conversations** and flag the bad ones, in
-   plain English — *"it made up a date"*, *"it ignored the error"*. That's
+1. You read a few of your agent's conversations and flag the bad ones, in
+   your own words — *"it made up a date"*, *"it ignored the error"*. That's
    the only work you ever do.
-2. **antibody turns each flag into a named failure pattern** — a permanent
-   record in your project, with the real conversations that prove it.
-3. **Every future conversation gets checked against every pattern you've
-   ever flagged.** When an old mistake sneaks back in, the check fails —
-   loudly, before your users find it.
+2. antibody turns each flag into a named pattern, saved as a small text
+   file in your project, with the real conversations that prove it.
+3. From then on, every new conversation gets checked against everything
+   you've ever flagged. If an old mistake sneaks back in, the check fails
+   loudly — before your users see it.
 
-No metrics to invent. No test cases to imagine. No dashboard to babysit.
-No PhD in evaluation. If you can read a conversation and say *"that's
-wrong,"* you are qualified to run evals with antibody — that's the entire
-point of it.
+You never invent a metric or write a test case. You just point at things
+that are wrong, and the pointing accumulates into something that guards
+your project.
 
 ## Try it in 30 seconds
 
-One command. No install, no API key, no cleanup — it plays out in a
-throwaway folder:
+One command. Nothing to install, no API key, and it runs in a throwaway
+folder so there's nothing to clean up:
 
 ```sh
 npx antibody demo
 ```
 
-You'll watch antibody catch a real mistake in a sample conversation and
-refuse to pass the build:
+You'll see it catch a real mistake in a sample conversation and refuse to
+pass the build:
 
 ![npx antibody demo — antibody imports sample conversations, catches an over-apology failure with the exact quote and line number, and exits 1](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/demo.gif)
 
 ## Use it on your own agent
 
-Setup is one command (`npx` fetches antibody, nothing to install):
+Setup is one command:
 
 ```sh
 cd your-agent-project && npx antibody init
 ```
 
-Then the loop, whenever you have fresh conversations:
+Then, whenever you have fresh conversations to look at:
 
 ```sh
 npx antibody import logs/  # bring in your agent's conversations
 npx antibody review        # flip through them, flag what's bad
-npx antibody distill       # your flags become named failure patterns
+npx antibody distill       # your flags become named patterns
 npx antibody scan          # check everything — fails CI if a mistake returns
 ```
 
-Using Claude Code or another coding agent? Skip the commands entirely — this
-repo ships [`skills/`](skills/) that teach your agent the whole loop. Just
-say: *"install antibody in this project and review my agent's traces."*
+If you use Claude Code or another coding agent, you can skip the commands —
+this repo ships [`skills/`](skills/) that teach your agent the whole loop.
+Just say: *"install antibody in this project and review my agent's traces."*
 
-Add that last line to your CI, point it at production logs on a nightly
-schedule, and every mistake anyone on your team has ever flagged is watched
-for, forever.
+Put that `scan` in CI, point it at your logs on a schedule, and the
+mistakes you've flagged stay caught.
 
-## How it stays honest
+## The checkers have to earn your trust
 
-Automated checkers can be wrong, so antibody makes each one **earn trust
-before it can block anyone's work**. A new pattern starts as a draft, then
-runs in report-only mode while antibody measures how often its verdicts
-match yours (`npx antibody calibrate` shows the score). While it's proving
-itself, its hits appear in `npx antibody review` as agent suggestions —
-one keypress to agree or dismiss, and each ruling becomes a calibration
-label. Only when you
-promote it — by editing one line in its file and committing — can it fail a
-build. Your judgment stays the ground truth; the robots just scale it.
+A fair question at this point: what if the automated checkers are wrong?
 
-## Working with a team
+They will be, sometimes. So antibody doesn't let a new checker block
+anyone's work. It starts in report-only mode, and while it's running, its
+catches show up in your review queue as suggestions — one keypress to say
+"yes, that's the mistake" or "no, it's not." antibody keeps score of how
+often the checker agrees with you (`npx antibody calibrate` shows it). When
+the score convinces you, you promote the checker by editing one line in its
+file. Only then can it fail a build.
 
-Everything antibody knows lives in small text files committed to git — the
-pattern registry, everyone's verdicts, the scan history. Sharing state with
-your team is `git pull`. No server, no accounts, and your conversations
+In other words: you stay the judge. The checkers are just deputies you've
+personally vetted.
+
+## Using it with a team
+
+Everything antibody knows is small text files committed to git — the
+patterns, everyone's verdicts, the scan history. Syncing with a teammate is
+just `git pull`. There's no server and no accounts, and your conversations
 never leave your machines.
 
 ## Want to go deeper?
@@ -97,10 +98,10 @@ never leave your machines.
 - [`spec/`](spec/) — the three tiny file formats everything is built on
 - [`skills/`](skills/) — teach Claude Code (or any coding agent) to run the
   whole loop for you
-- The methodology behind it: [Hamel Husain & Shreya Shankar's evals
+- The thinking behind it: [Hamel Husain & Shreya Shankar's evals
   FAQ](https://hamel.dev/blog/posts/evals-faq/) — antibody is their
-  error-analysis loop, packaged. Directly inspired by Shreya's
+  error-analysis loop, packaged up. Directly inspired by Shreya's
   [error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill);
   antibody imports its annotations (`npx antibody import --annotations`).
 
-MIT licensed. Free forever.
+MIT licensed.
