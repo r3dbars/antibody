@@ -66,7 +66,10 @@ export function startServer({ port = 4400, cwd = process.cwd() } = {}) {
         if (!/^tr-[0-9a-f]{12}$/.test(s.trace ?? '')) return json(res, 400, { error: 'bad trace id' });
         if (!['accept', 'dismiss'].includes(s.action)) return json(res, 400, { error: 'action must be "accept" or "dismiss"' });
         const resolved = appendSuggestion({ trace: s.trace, fm: s.fm, resolved: s.action === 'accept' ? 'accepted' : 'dismissed' }, cwd);
-        if (s.action === 'accept') appendVerdict({ trace: s.trace, verdict: 'bad', note: s.note ?? '', fm: s.fm }, cwd);
+        // Both rulings are calibration labels: accept = "this FM applies" (bad),
+        // dismiss = "this FM does not apply here" (ok). Negative labels are how
+        // a checker's false-positive rate (TNR) gets measured at all.
+        appendVerdict({ trace: s.trace, verdict: s.action === 'accept' ? 'bad' : 'ok', note: s.note ?? '', fm: s.fm }, cwd);
         json(res, 200, resolved);
       } else {
         json(res, 404, { error: 'not found' });

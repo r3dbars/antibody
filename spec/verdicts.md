@@ -59,6 +59,8 @@ mode — never ground truth, always awaiting a human ruling.
 - Writers: `antibody scan` auto-proposes every new hit from a *calibrating*
   checker (its way of asking for labels); agents propose via
   `antibody suggest`. A `(trace, fm)` pair is proposed at most once, ever.
-- **Accepting** a suggestion appends a normal FM-tagged verdict by the human —
-  exactly the labeled example calibration scores the checker against.
-  Dismissing just resolves it. Either way the human ruled; that's the point.
+- **Every ruling is a calibration label.** Accepting appends a `bad` verdict
+  tagged with the FM ("this mistake applies here"); dismissing appends an `ok`
+  verdict tagged with the FM ("not this mistake") — the negative labels that
+  make a checker's false-positive rate measurable. Either way the human
+  ruled; that's the point.
