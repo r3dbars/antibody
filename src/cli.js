@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initWorkspace, saveTrace, appendVerdict, ROOT_DIR } from './store.js';
+import { initWorkspace, saveTrace, appendVerdict, appendSuggestion, ROOT_DIR } from './store.js';
 import { tracesFromFile } from './normalize.js';
 import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
@@ -24,6 +24,8 @@ usage: antibody <command> [args]
   review [--port N]          open the human review queue on localhost
   verdict <trace> <bad|ok>   record a verdict from the terminal or an agent
           [--note "..."] [--fm FM-001]
+  suggest <trace> <FM-id>    propose "this trace matches this failure mode";
+          [--reason "..."]       shows in review for the human to accept/dismiss
   distill                    draft failure modes from unprocessed flags (LLM)
   scan [files...] [--json]   check traces against every active failure mode;
        [--only FM] [--sample N]   exit 1 if a "watching" mode has hits
@@ -150,6 +152,12 @@ async function main() {
       if (!trace || !['bad', 'ok'].includes(verdict)) throw new Error('usage: antibody verdict <trace-id> <bad|ok> [--note "..."] [--fm FM-001]');
       const record = appendVerdict({ trace, verdict, note: args.flags.note ?? '', fm: args.flags.fm ?? null });
       return console.log(asJson ? JSON.stringify(record) : `recorded: ${record.trace} ${record.verdict}${record.note ? ` — ${record.note}` : ''} (by ${record.by})`);
+    }
+    case 'suggest': {
+      const [trace, fm] = args._;
+      if (!/^tr-[0-9a-f]{12}$/.test(trace ?? '') || !fm) throw new Error('usage: antibody suggest <trace-id> <FM-id> [--reason "..."]');
+      const record = appendSuggestion({ trace, fm, reason: args.flags.reason ?? '', by: args.flags.by });
+      return console.log(asJson ? JSON.stringify(record) : `suggested: ${record.trace} → ${record.fm}${record.reason ? ` — ${record.reason}` : ''} (by ${record.by})`);
     }
     case 'distill': {
       const result = await distill();

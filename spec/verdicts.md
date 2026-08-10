@@ -42,3 +42,23 @@ ever**. The reviewer name comes from `git config user.name` (slugified), or
   for that mode.
 - Verdict files contain **no conversation content** — only fingerprints and
   judgments — so committing them doesn't put transcripts in git.
+
+## Suggestions: agents propose, humans resolve
+
+`.antibody/suggestions.jsonl`, one shared append-only file, committed to git.
+A **suggestion** is an agent's proposal that a trace matches a known failure
+mode — never ground truth, always awaiting a human ruling.
+
+```json
+{"trace":"tr-8f3a2c4190ab","fm":"FM-001","reason":"\"I apologize\" — matched rule","by":"scan/FM-001","at":"2026-08-09T14:03:00Z"}
+{"trace":"tr-8f3a2c4190ab","fm":"FM-001","resolved":"accepted","by":"justin","at":"2026-08-09T14:05:12Z"}
+```
+
+- A proposal with no later `resolved` line for the same `(trace, fm)` is
+  **pending** and appears in `antibody review` as a visually distinct card.
+- Writers: `antibody scan` auto-proposes every new hit from a *calibrating*
+  checker (its way of asking for labels); agents propose via
+  `antibody suggest`. A `(trace, fm)` pair is proposed at most once, ever.
+- **Accepting** a suggestion appends a normal FM-tagged verdict by the human —
+  exactly the labeled example calibration scores the checker against.
+  Dismissing just resolves it. Either way the human ruled; that's the point.

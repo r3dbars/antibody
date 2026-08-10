@@ -71,7 +71,10 @@ for, forever.
 Automated checkers can be wrong, so antibody makes each one **earn trust
 before it can block anyone's work**. A new pattern starts as a draft, then
 runs in report-only mode while antibody measures how often its verdicts
-match yours (`npx antibody calibrate` shows the score). Only when you
+match yours (`npx antibody calibrate` shows the score). While it's proving
+itself, its hits appear in `npx antibody review` as agent suggestions —
+one keypress to agree or dismiss, and each ruling becomes a calibration
+label. Only when you
 promote it — by editing one line in its file and committing — can it fail a
 build. Your judgment stays the ground truth; the robots just scale it.
 

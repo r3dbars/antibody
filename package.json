@@ -1,6 +1,6 @@
 {
   "name": "antibody",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An immune system for your AI agent. Flag a failure once — catch it forever.",
   "type": "module",
   "bin": {

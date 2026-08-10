@@ -3,7 +3,7 @@
 // Only FMs with status "watching" can fail the build (design decision D6):
 // "calibrating" FMs report but never gate, and promotion to watching is a
 // human-reviewed git diff, never tool magic.
-import { listFms, listTraceIds, loadTrace, loadConfig, loadPreviousScan, saveScan } from './store.js';
+import { listFms, listTraceIds, loadTrace, loadConfig, loadPreviousScan, saveScan, loadSuggestions, appendSuggestion, loadVerdicts } from './store.js';
 import { check, pool, hasApiKey } from './check.js';
 
 export async function scan({ traceIds = null, only = null, sample = null, cwd = process.cwd() } = {}) {
@@ -45,6 +45,24 @@ export async function scan({ traceIds = null, only = null, sample = null, cwd = 
     };
   });
 
+  // Calibrating checkers need labeled examples to earn trust, so each new hit
+  // is queued as a review suggestion the human accepts (→ FM-tagged verdict)
+  // or dismisses. Once proposed, a (trace, fm) pair is never re-proposed.
+  const proposed = new Set(loadSuggestions(cwd).map((s) => `${s.trace} ${s.fm}`));
+  for (const v of loadVerdicts(cwd)) if (v.fm) proposed.add(`${v.trace} ${v.fm}`);
+  let suggested = 0;
+  for (const r of results) {
+    if (r.status !== 'calibrating') continue;
+    for (const h of r.hits) {
+      const key = `${h.trace} ${r.id}`;
+      if (proposed.has(key)) continue;
+      proposed.add(key);
+      const reason = [h.quote && `"${h.quote}"`, h.reason].filter(Boolean).join(' — ') || 'checker hit';
+      appendSuggestion({ trace: h.trace, fm: r.id, reason, by: `scan/${r.id}` }, cwd);
+      suggested++;
+    }
+  }
+
   const gatingHits = results.filter((r) => r.status === 'watching' && r.hits.length > 0);
   const summary = {
     at: new Date().toISOString(),
@@ -52,6 +70,7 @@ export async function scan({ traceIds = null, only = null, sample = null, cwd = 
     results,
     skipped,
     usage: { calls: usage.calls, usd: Number(usage.usd.toFixed(4)) },
+    suggested,
     exitCode: gatingHits.length ? 1 : 0,
   };
   saveScan(summary, cwd);
@@ -76,6 +95,9 @@ export function renderScanReport(summary) {
   }
   for (const id of summary.skipped) {
     lines.push(`- ${id} skipped: judge checker needs ANTHROPIC_API_KEY`);
+  }
+  if (summary.suggested) {
+    lines.push(`→ ${summary.suggested} new calibrating hit${summary.suggested === 1 ? '' : 's'} queued in antibody review — accept or dismiss to calibrate`);
   }
   lines.push('');
   if (summary.usage.calls) lines.push(`${summary.usage.calls} judge calls · ~$${summary.usage.usd.toFixed(4)}`);

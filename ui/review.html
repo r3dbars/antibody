@@ -65,6 +65,16 @@
     color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap;
   }
   kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; background: var(--card); }
+  .suggestion {
+    border: 1.5px dashed var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: .6rem .8rem; margin: .8rem 0;
+  }
+  .suggestion .tag {
+    font-family: ui-monospace, monospace; font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--accent); display: block; margin-bottom: .25rem;
+  }
+  .suggestion .reason { color: var(--muted); font-size: .85rem; }
+  .suggestion .row { margin-top: .5rem; }
   .toast {
     position: fixed; top: .8rem; right: .8rem; background: var(--accent-soft);
     color: var(--ink); border: 1px solid var(--accent); border-radius: 8px;
@@ -100,6 +110,7 @@
     </div>
     <div class="keys">
       <span><kbd>f</kbd> flag</span><span><kbd>o</kbd> fine</span>
+      <span><kbd>a</kbd>/<kbd>x</kbd> suggestion yes/no</span>
       <span><kbd>n</kbd> note</span><span><kbd>j</kbd>/<kbd>k</kbd> next/prev</span>
       <span><kbd>u</kbd> show reviewed too</span>
     </div>
@@ -127,8 +138,9 @@
     const mine = (t) => t.reviewers.some((r) => r.by === state.me);
     const anyone = (t) => t.reviewers.length > 0;
     queue = state.traces.filter((t) => showReviewed ? true : !anyone(t));
-    // unclaimed first, then teammates', then mine
-    queue.sort((a, b) => (anyone(a) - anyone(b)) || (mine(a) - mine(b)));
+    // suggestions first (they unblock calibration), then unclaimed, teammates', mine
+    const hasSug = (t) => (state.suggestions[t.id] || []).length > 0;
+    queue.sort((a, b) => (hasSug(b) - hasSug(a)) || (anyone(a) - anyone(b)) || (mine(a) - mine(b)));
     idx = Math.min(idx, Math.max(0, queue.length - 1));
   }
 
@@ -143,8 +155,10 @@
       if (!t.reviewers.length) counts.unclaimed++;
     }
     const otherLabel = others.size ? [...others].join(', ') : 'teammates';
+    const sugCount = Object.values(state.suggestions).reduce((n, arr) => n + arr.length, 0);
     $('progress').textContent =
-      `you ${counts.me} · ${otherLabel} ${counts.others} · ${counts.unclaimed} unclaimed`;
+      `you ${counts.me} · ${otherLabel} ${counts.others} · ${counts.unclaimed} unclaimed` +
+      (sugCount ? ` · ${sugCount} suggestions` : '');
 
     const main = $('trace');
     if (!queue.length) {
@@ -159,8 +173,31 @@
       html += `<div class="msg ${m.role}"><div class="who">${m.role}</div>` +
         `<div class="bubble"><span class="lineno">${i + 1}</span>${escapeHtml(m.content)}</div></div>`;
     });
+    for (const s of state.suggestions[meta.id] || []) {
+      html += `<div class="suggestion"><span class="tag">agent suggestion · ${escapeHtml(s.by)}</span>` +
+        `<b>${s.fm} ${escapeHtml(s.name)}</b> <span class="reason">${escapeHtml(s.reason || '')}</span>` +
+        `<div class="row"><button class="bad" onclick="resolveSuggestion('${meta.id}','${s.fm}','accept')">✗ agree — flag as ${s.fm} (a)</button>` +
+        `<button onclick="resolveSuggestion('${meta.id}','${s.fm}','dismiss')">not this pattern (x)</button></div></div>`;
+    }
     main.innerHTML = html;
     window.scrollTo(0, 0);
+  }
+
+  async function resolveSuggestion(traceId, fm, action) {
+    await fetch('/api/suggestion', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ trace: traceId, fm, action, note: $('note').value.trim() }),
+    });
+    const list = state.suggestions[traceId] || [];
+    state.suggestions[traceId] = list.filter((s) => s.fm !== fm);
+    toast(action === 'accept' ? `✗ flagged as ${fm} — ${traceId}` : `dismissed ${fm} — ${traceId}`);
+    $('note').value = '';
+    if (action === 'accept') {
+      const t = state.traces.find((t) => t.id === traceId);
+      if (t) t.reviewers.push({ by: state.me, verdict: 'bad' });
+      if (!showReviewed) { rebuildQueue(); }
+    }
+    render();
   }
 
   function escapeHtml(s) {
@@ -196,7 +233,10 @@
       if (e.key === 'Escape') e.target.blur();
       return;
     }
-    if (e.key === 'f') submit('bad');
+    const sugs = queue.length ? (state.suggestions[queue[idx].id] || []) : [];
+    if (e.key === 'a' && sugs.length) resolveSuggestion(queue[idx].id, sugs[0].fm, 'accept');
+    else if (e.key === 'x' && sugs.length) resolveSuggestion(queue[idx].id, sugs[0].fm, 'dismiss');
+    else if (e.key === 'f') submit('bad');
     else if (e.key === 'o') submit('ok');
     else if (e.key === 'n') { e.preventDefault(); $('note').focus(); }
     else if (e.key === 'j') { idx = Math.min(idx + 1, queue.length - 1); render(); }

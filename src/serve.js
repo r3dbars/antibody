@@ -5,7 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertWorkspace, listTraceIds, loadTrace, listFms, loadVerdicts, latestVerdicts, appendVerdict, reviewerName } from './store.js';
+import { assertWorkspace, listTraceIds, loadTrace, listFms, loadVerdicts, latestVerdicts, appendVerdict, reviewerName, pendingSuggestions, appendSuggestion } from './store.js';
 
 const UI_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'ui', 'review.html');
 
@@ -18,15 +18,17 @@ function state(cwd) {
     reviewedBy.get(v.trace).push({ by: v.by, verdict: v.verdict });
   }
   const me = reviewerName(cwd);
+  const suggestions = {}; // trace -> [{fm, name, reason, by}]
+  const fms = listFms(cwd).map((f) => ({ id: f.id, name: f.name, status: f.status }));
+  const fmName = new Map(fms.map((f) => [f.id, f.name]));
+  for (const s of pendingSuggestions(cwd)) {
+    (suggestions[s.trace] ??= []).push({ fm: s.fm, name: fmName.get(s.fm) ?? '', reason: s.reason, by: s.by });
+  }
   const traces = listTraceIds(cwd).map((id) => ({
     id,
     reviewers: reviewedBy.get(id) ?? [],
   }));
-  return {
-    me,
-    traces,
-    fms: listFms(cwd).map((f) => ({ id: f.id, name: f.name, status: f.status })),
-  };
+  return { me, traces, fms, suggestions };
 }
 
 function json(res, code, body) {
@@ -55,6 +57,17 @@ export function startServer({ port = 4400, cwd = process.cwd() } = {}) {
         if (!/^tr-[0-9a-f]{12}$/.test(v.trace ?? '')) return json(res, 400, { error: 'bad trace id' });
         if (!['bad', 'ok'].includes(v.verdict)) return json(res, 400, { error: 'verdict must be "bad" or "ok"' });
         json(res, 200, appendVerdict({ trace: v.trace, verdict: v.verdict, note: v.note ?? '', fm: v.fm ?? null }, cwd));
+      } else if (req.method === 'POST' && url.pathname === '/api/suggestion') {
+        // Human ruling on an agent proposal. Accepting records a real verdict
+        // tagged with the FM — the labeled example calibration scores against.
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const s = JSON.parse(body);
+        if (!/^tr-[0-9a-f]{12}$/.test(s.trace ?? '')) return json(res, 400, { error: 'bad trace id' });
+        if (!['accept', 'dismiss'].includes(s.action)) return json(res, 400, { error: 'action must be "accept" or "dismiss"' });
+        const resolved = appendSuggestion({ trace: s.trace, fm: s.fm, resolved: s.action === 'accept' ? 'accepted' : 'dismissed' }, cwd);
+        if (s.action === 'accept') appendVerdict({ trace: s.trace, verdict: 'bad', note: s.note ?? '', fm: s.fm }, cwd);
+        json(res, 200, resolved);
       } else {
         json(res, 404, { error: 'not found' });
       }
