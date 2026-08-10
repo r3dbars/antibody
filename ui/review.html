@@ -32,6 +32,33 @@
   header .brand span { color: var(--muted); font-weight: 400; }
   #progress { font-size: .85rem; color: var(--muted); }
 
+  .tabs { display: flex; gap: .4rem; margin: 1.2rem 0 0; border-bottom: 1px solid var(--line); }
+  .tabs button {
+    border: none; background: none; border-radius: 8px 8px 0 0; color: var(--muted);
+    padding: .5rem .9rem; font-weight: 600; border-bottom: 2px solid transparent;
+  }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tabs button .count {
+    background: var(--accent-soft); color: var(--accent); border-radius: 99px;
+    font-size: .75rem; padding: .05rem .5rem; margin-left: .3rem;
+  }
+
+  /* pattern-matches tab */
+  .fm-group { margin: 1.4rem 0; }
+  .fm-group > h2 { font-size: 1.05rem; margin: 0 0 .1rem; }
+  .fm-group .desc { color: var(--muted); font-size: .85rem; margin-bottom: .6rem; }
+  .fm-group .bulk { display: flex; gap: .5rem; margin: .5rem 0 .8rem; }
+  .fm-group .bulk button { font-size: .82rem; padding: .35rem .7rem; }
+  .match {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: .6rem .8rem; margin-bottom: .6rem;
+  }
+  .match .pair { margin-bottom: .3rem; }
+  .match .pair .t { color: var(--muted); }
+  .match .pair .g { color: var(--accent); font-weight: 600; }
+  .match .why { color: var(--muted); font-size: .85rem; margin-bottom: .45rem; }
+  .match .row button { font-size: .85rem; padding: .35rem .8rem; }
+
   .question { margin: 1.6rem 0 .2rem; font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
   .hint { color: var(--muted); font-size: .9rem; margin-bottom: 1.4rem; }
 
@@ -122,10 +149,22 @@
     <span id="progress">loading…</span>
   </header>
 
-  <div class="question">Did the AI get this wrong?</div>
-  <div class="hint">Read the exchange, then answer below. Unsure? Skip it with <kbd>j</kbd> — only confident answers count.</div>
+  <div class="tabs">
+    <button id="tab-review" class="active" onclick="setTab('review')">Review</button>
+    <button id="tab-matches" onclick="setTab('matches')">Pattern matches<span class="count" id="match-count" hidden></span></button>
+  </div>
 
-  <main id="trace"></main>
+  <div id="view-review">
+    <div class="question">Did the AI get this wrong?</div>
+    <div class="hint">Read the exchange, then answer below. Unsure? Skip it with <kbd>j</kbd> — only confident answers count.</div>
+    <main id="trace"></main>
+  </div>
+
+  <div id="view-matches" hidden>
+    <div class="question">Do these match the mistakes you've named?</div>
+    <div class="hint">The checkers went hunting with your patterns. Confirm the catches, throw back the misses — every answer sharpens the checker.</div>
+    <main id="matches"></main>
+  </div>
 
   <div class="panel">
     <div class="row">
@@ -148,8 +187,83 @@
 </div>
 <div class="toast" id="toast"></div>
 <script>
-  let state = null, queue = [], idx = 0, showReviewed = false;
+  let state = null, queue = [], idx = 0, showReviewed = false, tab = 'review';
   const $ = (id) => document.getElementById(id);
+  const traceCache = new Map();
+
+  function setTab(t) {
+    tab = t;
+    $('tab-review').classList.toggle('active', t === 'review');
+    $('tab-matches').classList.toggle('active', t === 'matches');
+    $('view-review').hidden = t !== 'review';
+    $('view-matches').hidden = t !== 'matches';
+    document.querySelector('.panel').style.display = t === 'review' ? '' : 'none';
+    if (t === 'matches') renderMatches();
+  }
+
+  async function getTrace(id) {
+    if (!traceCache.has(id)) traceCache.set(id, await (await fetch('/api/trace?id=' + id)).json());
+    return traceCache.get(id);
+  }
+
+  function pendingByFm() {
+    const groups = new Map(); // fm id -> {name, items: [{trace, reason, by}]}
+    for (const [traceId, sugs] of Object.entries(state.suggestions)) {
+      for (const s of sugs) {
+        if (!groups.has(s.fm)) groups.set(s.fm, { fm: s.fm, name: s.name, items: [] });
+        groups.get(s.fm).items.push({ trace: traceId, reason: s.reason, by: s.by });
+      }
+    }
+    return [...groups.values()].sort((a, b) => a.fm.localeCompare(b.fm));
+  }
+
+  async function renderMatches() {
+    const main = $('matches');
+    const groups = pendingByFm();
+    if (!groups.length) {
+      main.innerHTML = '<div class="done">No open questions — every checker match has your answer.<br>New ones appear after each scan.</div>';
+      return;
+    }
+    let html = '';
+    for (const g of groups) {
+      const fmMeta = state.fms.find((f) => f.id === g.fm) || {};
+      const desc = (fmMeta.description || '').replace(/[,;:]$/, '');
+      html += `<div class="fm-group"><h2>${g.fm.replace('FM-00', '#')} ${escapeHtml((g.name || '').replaceAll('-', ' '))} — ${g.items.length} possible match${g.items.length === 1 ? '' : 'es'}</h2>` +
+        (desc ? `<div class="desc">${escapeHtml(desc)}.</div>` : '') +
+        `<div class="bulk"><button onclick="bulkResolve('${g.fm}','accept')">✗ Yes to all ${g.items.length}</button>` +
+        `<button onclick="bulkResolve('${g.fm}','dismiss')">Dismiss all</button></div>`;
+      for (const it of g.items) {
+        const why = (it.reason || '').replace(/\s*—\s*matched \/.*\/$/, '');
+        html += `<div class="match" id="match-${it.trace}-${g.fm}" title="${escapeHtml(it.reason || '')}"><div class="pair" data-trace="${it.trace}">loading…</div>` +
+          `<div class="why">${escapeHtml(why)} <span style="opacity:.7">· found by ${escapeHtml(it.by || 'checker')}</span></div>` +
+          `<div class="row"><button class="bad" onclick="resolveSuggestion('${it.trace}','${g.fm}','accept')">Yes, that mistake</button>` +
+          `<button onclick="resolveSuggestion('${it.trace}','${g.fm}','dismiss')">No, it's not</button></div></div>`;
+      }
+      html += '</div>';
+    }
+    main.innerHTML = html;
+    for (const el of main.querySelectorAll('.pair[data-trace]')) {
+      getTrace(el.dataset.trace).then((t) => {
+        const typed = t.messages.find((m) => m.role === 'user');
+        const ghost = t.messages.find((m) => m.role === 'assistant');
+        el.innerHTML = `<span class="t">${escapeHtml((typed?.content ?? '').slice(-80))}</span> → <span class="g">${escapeHtml((ghost?.content ?? '').slice(0, 80))}</span>`;
+      });
+    }
+  }
+
+  async function bulkResolve(fm, action) {
+    const items = pendingByFm().find((g) => g.fm === fm)?.items ?? [];
+    if (items.length > 3 && !confirm(`${action === 'accept' ? 'Accept' : 'Dismiss'} all ${items.length} matches for ${fm}?`)) return;
+    for (const it of items) await resolveSuggestion(it.trace, fm, action, true);
+    toast(`${action === 'accept' ? '✗ accepted' : 'dismissed'} ${items.length} matches`);
+    renderMatches(); updateMatchCount();
+  }
+
+  function updateMatchCount() {
+    const n = Object.values(state.suggestions).reduce((s, arr) => s + arr.length, 0);
+    const el = $('match-count');
+    el.hidden = !n; el.textContent = n;
+  }
 
   // Plain-words labels for the technical role names in stored traces.
   const WHO = { user: 'They wrote', assistant: 'The AI said', tool: 'Tool result', system: '' };
@@ -165,6 +279,7 @@
     }
     rebuildQueue();
     render();
+    updateMatchCount();
   }
 
   function rebuildQueue() {
@@ -239,21 +354,24 @@
     render();
   }
 
-  async function resolveSuggestion(traceId, fm, action) {
+  async function resolveSuggestion(traceId, fm, action, quiet) {
     await fetch('/api/suggestion', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ trace: traceId, fm, action, note: $('note').value.trim() }),
+      body: JSON.stringify({ trace: traceId, fm, action, note: tab === 'review' ? $('note').value.trim() : '' }),
     });
     const list = state.suggestions[traceId] || [];
     state.suggestions[traceId] = list.filter((s) => s.fm !== fm);
-    toast(action === 'accept' ? '✗ marked wrong — the checker was right' : 'noted — not that mistake');
-    $('note').value = '';
+    if (!state.suggestions[traceId].length) delete state.suggestions[traceId];
     if (action === 'accept') {
       const t = state.traces.find((t) => t.id === traceId);
       if (t) t.reviewers.push({ by: state.me, verdict: 'bad' });
       if (!showReviewed) rebuildQueue();
     }
-    render();
+    updateMatchCount();
+    if (quiet) { document.getElementById(`match-${traceId}-${fm}`)?.remove(); return; }
+    toast(action === 'accept' ? '✗ marked wrong — the checker was right' : 'noted — not that mistake');
+    if (tab === 'review') { $('note').value = ''; render(); }
+    else { document.getElementById(`match-${traceId}-${fm}`)?.remove(); if (!Object.keys(state.suggestions).length) renderMatches(); }
   }
 
   function toast(msg) {
@@ -270,6 +388,7 @@
       if (e.key === 'Escape') e.target.blur();
       return;
     }
+    if (tab !== 'review') return;
     const sugs = queue.length ? (state.suggestions[queue[idx].id] || []) : [];
     if (e.key === 'a' && sugs.length) resolveSuggestion(queue[idx].id, sugs[0].fm, 'accept');
     else if (e.key === 'x' && sugs.length) resolveSuggestion(queue[idx].id, sugs[0].fm, 'dismiss');

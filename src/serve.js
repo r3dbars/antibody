@@ -19,7 +19,7 @@ function state(cwd) {
   }
   const me = reviewerName(cwd);
   const suggestions = {}; // trace -> [{fm, name, reason, by}]
-  const fms = listFms(cwd).map((f) => ({ id: f.id, name: f.name, status: f.status }));
+  const fms = listFms(cwd).map((f) => ({ id: f.id, name: f.name, status: f.status, description: (f.description || '').split(/\.\s|\n/)[0] }));
   const fmName = new Map(fms.map((f) => [f.id, f.name]));
   for (const s of pendingSuggestions(cwd)) {
     (suggestions[s.trace] ??= []).push({ fm: s.fm, name: fmName.get(s.fm) ?? '', reason: s.reason, by: s.by });
