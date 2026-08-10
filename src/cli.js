@@ -150,6 +150,8 @@ async function main() {
     case 'verdict': {
       const [trace, verdict] = args._;
       if (!trace || !['bad', 'ok'].includes(verdict)) throw new Error('usage: antibody verdict <trace-id> <bad|ok> [--note "..."] [--fm FM-001]');
+      if (!/^tr-[0-9a-f]{12}$/.test(trace)) throw new Error(`"${trace}" is not a trace id (expected tr- plus 12 hex chars)`);
+      if (args.flags.fm && !/^FM-\d+$/.test(String(args.flags.fm))) throw new Error(`--fm expects an id like FM-001, got "${args.flags.fm}"`);
       const record = appendVerdict({ trace, verdict, note: args.flags.note ?? '', fm: args.flags.fm ?? null });
       return console.log(asJson ? JSON.stringify(record) : `recorded: ${record.trace} ${record.verdict}${record.note ? ` — ${record.note}` : ''} (by ${record.by})`);
     }
