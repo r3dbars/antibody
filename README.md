@@ -4,16 +4,21 @@
 [![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**An immune system for your AI agent. Flag a failure once — catch it forever.**
+**AI evals made simple.** An immune system for your AI agent: flag a failure
+once — catch it forever.
 
 ![How antibody works: traces → you flag it → registry in git → every future run scanned](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/loop.png)
 
-## The idea
+## Evals are hard. Starting them shouldn't be.
 
-Your AI agent makes mistakes. Today you find them by luck, fix them, and hope
-they stay fixed. They don't.
+Everyone says "you need evals." Then you look at what that means: invent
+metrics, build golden datasets, write judge prompts, label thousands of
+examples, stand up a dashboard. It's a lot — so most people do nothing, and
+their agent's mistakes ship silently, again and again.
 
-antibody gives your agent a memory for its mistakes:
+antibody is the simple way in. You start with the one skill you already
+have — reading a conversation and saying *"that's wrong"* — and a real eval
+suite grows underneath you:
 
 1. **Read a few of your agent's conversations** and flag the bad ones, in
    plain English — *"it made up a date"*, *"it ignored the error"*. That's
@@ -25,7 +30,9 @@ antibody gives your agent a memory for its mistakes:
    loudly, before your users find it.
 
 No metrics to invent. No test cases to imagine. No dashboard to babysit.
-If you can read a conversation and say *"that's wrong,"* you can do this.
+No PhD in evaluation. If you can read a conversation and say *"that's
+wrong,"* you are qualified to run evals with antibody — that's the entire
+point of it.
 
 ## Try it in 30 seconds
 

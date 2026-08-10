@@ -1,7 +1,7 @@
 {
   "name": "antibody",
-  "version": "0.3.6",
-  "description": "An immune system for your AI agent. Flag a failure once — catch it forever.",
+  "version": "0.3.7",
+  "description": "AI evals made simple. An immune system for your AI agent: flag a failure once — catch it forever.",
   "type": "module",
   "bin": {
     "antibody": "src/cli.js"
