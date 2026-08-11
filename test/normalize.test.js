@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fingerprint, makeTrace, normalizeMessages, extractMessages, stableJson } from '../src/normalize.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fingerprint, makeTrace, normalizeMessages, extractMessages, stableJson, tracesFromFile } from '../src/normalize.js';
 
 test('fingerprint is stable across metadata differences', () => {
   const a = makeTrace([{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }], 'a.json');
@@ -61,4 +64,29 @@ test('extractMessages finds common container keys', () => {
 
 test('stableJson sorts keys recursively', () => {
   assert.equal(stableJson({ b: { d: 1, c: 2 }, a: [3, { z: 1, y: 2 }] }), '{"a":[3,{"y":2,"z":1}],"b":{"c":2,"d":1}}');
+});
+
+test('meta rides along but never changes the fingerprint', () => {
+  const messages = [
+    { role: 'user', content: 'ama' },
+    { role: 'assistant', content: 'zing' },
+  ];
+  const bare = makeTrace(messages, 'x.jsonl:1');
+  const enriched = makeTrace(messages, 'x.jsonl:1', { screen: 'a browser window full of text', app: 'Chrome' });
+  assert.equal(enriched.id, bare.id, 'adding meta must not orphan existing verdicts');
+  assert.deepEqual(enriched.meta, { screen: 'a browser window full of text', app: 'Chrome' });
+  assert.equal(bare.meta, undefined);
+  // empty or non-object meta is dropped rather than stored as noise
+  assert.equal(makeTrace(messages, '', {}).meta, undefined);
+  assert.equal(makeTrace(messages, '', ['nope']).meta, undefined);
+});
+
+test('importers pass a top-level meta object through', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antibody-meta-'));
+  const file = path.join(dir, 'traces.jsonl');
+  fs.writeFileSync(file,
+    JSON.stringify({ messages: [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'there' }], meta: { screen: 'ctx' } }) + '\n');
+  const [trace] = tracesFromFile(file);
+  assert.deepEqual(trace.meta, { screen: 'ctx' });
+  fs.rmSync(dir, { recursive: true, force: true });
 });

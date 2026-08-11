@@ -88,6 +88,29 @@
     padding: .65rem .85rem; color: var(--ink); font-size: 1rem;
   }
 
+  /* what the model could see — carried metadata, not part of the conversation */
+  details.meta { margin: .9rem 0; }
+  details.meta summary {
+    cursor: pointer; color: var(--muted); font-size: .82rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+    list-style: none;
+  }
+  details.meta summary::-webkit-details-marker { display: none; }
+  details.meta summary::before { content: "▸ "; }
+  details.meta[open] summary::before { content: "▾ "; }
+  details.meta .box {
+    margin-top: .4rem; background: var(--card); border: 1px solid var(--line);
+    border-left: 3px solid var(--muted); border-radius: 10px;
+    padding: .6rem .8rem; font-size: .88rem; color: var(--muted);
+    white-space: pre-wrap; word-break: break-word; max-height: 15rem; overflow-y: auto;
+  }
+  details.meta .box dt {
+    font-family: ui-monospace, monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .06em; margin-top: .5rem;
+  }
+  details.meta .box dt:first-child { margin-top: 0; }
+  details.meta .box dd { margin: .1rem 0 0; color: var(--ink); }
+
   /* robot suggestion card */
   .suggestion {
     border: 1.5px dashed var(--accent); background: var(--accent-soft);
@@ -321,6 +344,17 @@
         (who ? `<div class="who">${who}</div>` : '') +
         `<div class="bubble">${escapeHtml(content)}</div></div>`;
     });
+    if (trace.meta && Object.keys(trace.meta).length) {
+      const m = trace.meta;
+      const screen = m.screen ?? m.screen_context ?? '';
+      const rest = Object.entries(m).filter(([k]) => k !== 'screen' && k !== 'screen_context');
+      html += `<details class="meta"${screen ? ' open' : ''}>` +
+        `<summary>${screen ? 'What was on screen when it suggested this' : 'Extra context'}</summary>` +
+        `<div class="box">` +
+        (screen ? `<dl><dt>on screen</dt><dd>${escapeHtml(String(screen))}</dd></dl>` : '') +
+        (rest.length ? `<dl>${rest.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd>`).join('')}</dl>` : '') +
+        `</div></details>`;
+    }
     for (const s of state.suggestions[meta.id] || []) {
       // hide rule internals ("— matched /…/") behind a tooltip; lead with the quote
       const quote = (s.reason || '').replace(/\s*—\s*matched \/.*\/$/, '');
