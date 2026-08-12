@@ -46,5 +46,4 @@ New checkers start report-only, calibrate against your decisions, and gate CI on
 
 Conversation traces remain local. Fingerprints, verdicts, and failure patterns can live in git.
 
-![The Antibody file boundary](./07-file-boundary.png)
-
+![The Antibody file boundary](./07-file-boundary-terminal.png)

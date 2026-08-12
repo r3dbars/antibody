@@ -109,7 +109,7 @@ Checkers can be wrong, so new ones can't gate anything:
 
 ## Teams
 
-![Conversation traces stay local while verdicts and the registry can live in git](docs/visual-story/07-file-boundary.png)
+![Conversation traces stay local while verdicts and the registry can live in git](docs/visual-story/07-file-boundary-terminal.png)
 
 State is text files in git, one verdict file per reviewer — syncing is
 `git pull`, no merge conflicts by construction. Verdict files contain trace
