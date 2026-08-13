@@ -4,136 +4,173 @@
 [![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**AI evals made simple.** Flag a bad AI conversation once; antibody catches
-that mistake every time it tries to come back.
+**The immune system for your AI application.** Flag a failure once. Catch it
+whenever it comes back.
 
-![Antibody is a physical failure-signature scanner for your AI system](docs/visual-story/00-hero.png)
+Your tests catch deterministic bugs. Antibody catches recurring AI behavior you
+never want to ship again: fabricated facts, ignored instructions, broken tool
+use, unhelpful refusals, or whatever *you* decide is wrong.
 
-Evals sound like a whole project — metrics, golden datasets, judge prompts,
-dashboards. antibody skips all that. You read your agent's conversations and
-flag the bad ones in your own words; it turns your flags into checkers and
-runs them on everything, forever.
+Antibody is a small CLI and a `.antibody/` folder in your repo. You review real
+conversations, describe failures in plain language, and turn those decisions
+into regression checks.
 
-antibody is a small CLI plus a `.antibody/` folder in your repo. Traces,
-verdicts, and failure patterns are all plain text files in git. No server,
-no accounts, nothing leaves your machine.
+## See it work in 30 seconds
 
-## Flag it once. Catch it forever.
-
-Your AI produces a bad answer. Antibody does not pretend to know that it is
-bad until you flag it.
-
-![An unknown AI failure arrives at the Antibody workstation](docs/visual-story/01-unknown-failure.png)
-
-You name the problem in your own words. Antibody turns that judgment into a
-durable failure signature.
-
-![A developer flags the bad output](docs/visual-story/02-flag-it.png)
-
-![Antibody saves the failure signature as a reviewable card](docs/visual-story/03-signature-saved.png)
-
-From then on, future outputs pass through the scanner. If the same kind of
-mistake returns, Antibody catches it before you ship.
-
-![Antibody scans future AI outputs](docs/visual-story/04-scan-future-outputs.png)
-
-![Antibody catches a recurring failure before ship](docs/visual-story/05-match-found.png)
-
-## Try it
-
-No install, no API key, runs in a throwaway folder:
+No install or API key required:
 
 ```sh
 npx antibody demo
 ```
 
-![npx antibody demo — antibody imports sample conversations, catches an over-apology failure with the exact quote and line number, and exits 1](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/demo.gif)
+![A terminal demo where Antibody imports sample conversations, detects a known over-apology failure, shows the matching quote, and exits with code 1](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/demo.gif)
+
+The demo intentionally exits with code `1`. That is the win: a known failure
+came back, so Antibody stopped the run.
+
+## The whole idea
+
+![Review real conversations, flag bad behavior, distill it into a failure pattern, and scan future conversations](assets/working-loop.svg)
+
+1. **Review** conversations your application actually produced.
+2. **Flag** a bad one and explain the problem in your own words.
+3. **Distill** repeated flags into a named, reviewable failure pattern.
+4. **Scan** new conversations and fail CI when a trusted failure returns.
+
+If you know regression testing, you already know the mental model:
+
+| Software testing | Antibody |
+|---|---|
+| A bug report | A flagged conversation |
+| A regression test | A failure pattern |
+| Test fixtures | Reviewed traces |
+| The test suite | The failure registry |
+| A failing build | A known behavior returned |
+
+Antibody does not decide what “good AI” means. You make that call; Antibody
+helps you remember it.
 
 ## Use it on your agent
 
-```sh
-cd your-agent-project && npx antibody init
-```
-
-Then, whenever you have fresh conversations:
+Initialize Antibody inside your project:
 
 ```sh
-npx antibody import logs/  # JSON/JSONL, most message shapes work
-npx antibody review        # localhost queue: flag what's bad, in your words
-npx antibody distill       # flags → named failure patterns
-npx antibody scan          # exit 1 if a known mistake came back
+cd your-agent-project
+npx antibody init
 ```
 
-Put `scan` in CI and the mistakes you've flagged stay caught.
+Then run the loop whenever you have fresh conversations:
 
-Using Claude Code or another coding agent? Skip the commands — [`skills/`](skills/)
-teach it the loop. Say: *"install antibody in this project and review my
-agent's traces."*
+```sh
+npx antibody import logs/  # normalize JSON or JSONL conversations
+npx antibody review        # review locally and flag failures
+npx antibody distill       # turn flags into draft failure patterns
+npx antibody scan          # exit 1 if a trusted failure returned
+```
 
-## What a failure pattern looks like
+Put `antibody scan` in CI once your checkers have earned your trust.
 
-Each flag you make distills into a file like this in
-`.antibody/registry/` — readable, diffable, code-reviewable:
+Using Claude Code or another coding agent? The [`skills/`](skills/) directory
+teaches it the same loop. Ask it to *“install Antibody in this project and
+review my agent's traces.”*
+
+## What Antibody creates
+
+There is no server or database. The state is ordinary files:
+
+```text
+.antibody/
+├── .gitignore            # keeps traces out of git
+├── config.json           # models and scan settings
+├── traces/               # normalized conversations; local only
+├── verdicts/             # human decisions; one JSONL file per reviewer
+├── registry/             # known failure patterns; Markdown
+├── suggestions.jsonl     # matches waiting for a human decision
+└── scans/                 # scan summaries and trends
+```
+
+A failure pattern is readable, diffable, and code-reviewable:
 
 ```markdown
 ---
 id: FM-001
-name: replies-instead-of-continuing
-status: calibrating        # report-only until you promote it
+name: fabricated-dates
+status: calibrating
 examples:
-  - trace: tr-9ffc4d8ce646
-    note: "suggested the assistant's reply while I was typing the user side"
+  - trace: tr-8f3a2c4190ab
+    note: "promised a delivery date that appeared nowhere in the source"
 checker:
-  type: rule               # rule = regex, free; judge = LLM call
-  pattern: "^(I['']?m not sure|I apologi[sz]e)"
+  type: judge
 ---
 
 ## Description
 
-While the owner types the user side of a chat, the suggestion answers them
-instead of continuing their sentence.
+States a specific date that is not supported by the conversation,
+tool results, or source documents.
 ```
 
-## Checkers earn trust; you stay the judge
+This is your application's immune memory: a versioned record of mistakes that
+should not return.
 
-![Checkers move from report-only to calibration to watching only when you promote them](docs/visual-story/06-trust-ladder.png)
+## Checkers earn trust
 
-Checkers can be wrong, so new ones can't gate anything:
+An LLM judge can be wrong. New checkers therefore cannot block a build.
 
-- New patterns start report-only. Their hits show up in `review` as
-  one-keypress accept/dismiss questions.
-- Every accept/dismiss doubles as a calibration label. `npx antibody
-  calibrate` shows each checker's agreement with you (TPR/TNR included).
-- Promotion is manual: edit `status: watching` in the pattern file and
-  commit. Only `watching` patterns can fail a build.
+![A failure pattern moves from a draft, to report-only calibration, to CI gating only after a human promotes it](assets/trust-ladder.svg)
 
-## Teams
+- **Proposed** patterns are drafts for you to inspect.
+- **Calibrating** patterns report matches but cannot fail CI. Every accept or
+  dismiss becomes another label.
+- **Watching** patterns may fail CI. Promotion is a one-line status change that
+  a human reviews and commits.
 
-![Conversation traces stay local while verdicts and the registry can live in git](docs/visual-story/07-file-boundary-terminal.png)
+`npx antibody calibrate` shows agreement, true-positive rate, true-negative
+rate, and label count. Antibody may suggest a promotion; it never promotes a
+checker for you.
 
-State is text files in git, one verdict file per reviewer — syncing is
-`git pull`, no merge conflicts by construction. Verdict files contain trace
-fingerprints and judgments, not conversation content, so committing them
-doesn't put transcripts in your repo.
+## Local where it matters
 
-## Rough edges
+Raw conversations can contain sensitive data, so Antibody keeps them out of
+Git by default.
 
-- `rule` checkers are free and run anywhere; `judge` checkers need
-  `ANTHROPIC_API_KEY` (or a coding agent driving the loop via `skills/`).
-- Calibration needs labels — expect ~10+ verdicts on a pattern before its
-  score means much. Don't promote before that.
-- `import` handles most JSON/JSONL message shapes; Claude Code session
-  transcripts need an adapter (planned).
-- Changing a trace's text changes its fingerprint — re-exporting the same
-  conversations with different formatting imports them as new traces.
+| Stays local and Git-ignored | Designed to live in Git |
+|---|---|
+| Conversation text | Trace fingerprints and human verdicts |
+| Messages and tool output | Failure-pattern definitions |
+| Trace metadata | Calibration and scan summaries |
 
-## Background
+The review queue runs on localhost. Rule-based checkers run entirely on your
+machine. `judge` checkers and `distill` use the configured LLM provider, so
+review that provider's data policy before using them with sensitive traces.
 
-antibody is [Hamel Husain & Shreya Shankar's evals
-FAQ](https://hamel.dev/blog/posts/evals-faq/) error-analysis loop, packaged.
-Directly inspired by Shreya's
-[error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill);
-antibody imports its annotations (`npx antibody import --annotations`).
-File formats are specified in [`spec/`](spec/).
+Teams sync the shared memory with normal Git. Verdicts are append-only and use
+one file per reviewer, avoiding the usual everyone-edits-the-same-file conflict.
 
-MIT licensed.
+## Checker types
+
+- **Rule:** a narrow regular expression. Free, deterministic, and local.
+- **Judge:** one narrow yes/no LLM check grounded in your examples. Useful when
+  the failure cannot be expressed mechanically.
+
+Prefer a rule whenever one can describe the failure. Use a judge when the
+behavior requires interpretation.
+
+## Honest limits
+
+- `distill` and `judge` checkers currently use Anthropic and require
+  `ANTHROPIC_API_KEY`. Rule checkers do not.
+- Calibration needs labels. Expect roughly 10 or more verdicts before treating
+  a score as meaningful.
+- Import handles common JSON and JSONL message shapes. Unusual trace formats may
+  need an adapter.
+- A trace fingerprint depends on normalized conversation text. Reformatting the
+  same conversation can create a new trace.
+
+## Why this exists
+
+Antibody packages the error-analysis loop from Hamel Husain and Shreya
+Shankar's [Evals FAQ](https://hamel.dev/blog/posts/evals-faq/) into a small,
+Git-native workflow. It is directly inspired by Shreya's
+[error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill).
+
+File formats are documented in [`spec/`](spec/). Antibody is MIT licensed.

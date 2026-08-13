@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="760" viewBox="0 0 860 760" role="img" aria-labelledby="title desc">
+  <title id="title">Antibody checker trust ladder</title>
+  <desc id="desc">A failure pattern begins as a proposed draft, moves to report-only calibration, and can gate continuous integration only after a human promotes it to watching.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F05A28"/>
+    </marker>
+  </defs>
+  <rect width="860" height="760" rx="18" fill="#0D1117"/>
+  <text x="430" y="58" fill="#F0F3F6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="27" font-weight="700" text-anchor="middle">only trusted checkers can block CI</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <g transform="translate(90 100)">
+      <rect width="680" height="150" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="47" fill="#F05A28" font-size="20" font-weight="700">PROPOSED</text>
+      <text x="30" y="102" fill="#F0F3F6" font-size="34" font-weight="700">DRAFT ONLY</text>
+      <text x="410" y="102" fill="#9DA7B3" font-size="25" font-weight="700">CANNOT BLOCK</text>
+    </g>
+    <g transform="translate(90 315)">
+      <rect width="680" height="150" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="47" fill="#F05A28" font-size="20" font-weight="700">CALIBRATING</text>
+      <text x="30" y="102" fill="#F0F3F6" font-size="34" font-weight="700">REPORTS ONLY</text>
+      <text x="410" y="102" fill="#9DA7B3" font-size="25" font-weight="700">CANNOT BLOCK</text>
+    </g>
+    <g transform="translate(90 560)">
+      <rect width="680" height="150" rx="12" fill="#161B22" stroke="#F05A28" stroke-width="4"/>
+      <text x="30" y="47" fill="#F05A28" font-size="20" font-weight="700">WATCHING</text>
+      <text x="30" y="102" fill="#F0F3F6" font-size="34" font-weight="700">TRUSTED</text>
+      <text x="410" y="102" fill="#F0F3F6" font-size="25" font-weight="700">MAY BLOCK CI</text>
+    </g>
+  </g>
+
+  <g fill="none" stroke="#F05A28" stroke-width="4" marker-end="url(#arrow)">
+    <path d="M430 262 V300"/>
+    <path d="M430 477 V540"/>
+  </g>
+  <rect x="486" y="486" width="286" height="42" rx="21" fill="#0D1117" stroke="#30363D"/>
+  <text x="629" y="514" fill="#F05A28" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" font-weight="700" text-anchor="middle">human-reviewed commit</text>
+</svg>

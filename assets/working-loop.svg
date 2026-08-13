@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">The Antibody working loop</title>
+  <desc id="desc">Review real conversations, flag bad behavior, distill the flag into a reusable failure pattern, and scan future conversations. New conversations return to review.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F05A28"/>
+    </marker>
+  </defs>
+  <rect width="960" height="720" rx="18" fill="#0D1117"/>
+  <text x="480" y="58" fill="#F0F3F6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="28" font-weight="700" text-anchor="middle">one decision becomes a regression check</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <g transform="translate(65 105)">
+      <rect width="360" height="190" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="54" fill="#F05A28" font-size="21" font-weight="700">01</text>
+      <text x="30" y="120" fill="#F0F3F6" font-size="42" font-weight="700">REVIEW</text>
+    </g>
+    <g transform="translate(535 105)">
+      <rect width="360" height="190" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="54" fill="#F05A28" font-size="21" font-weight="700">02</text>
+      <text x="30" y="120" fill="#F0F3F6" font-size="42" font-weight="700">FLAG</text>
+    </g>
+    <g transform="translate(535 405)">
+      <rect width="360" height="190" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="54" fill="#F05A28" font-size="21" font-weight="700">03</text>
+      <text x="30" y="120" fill="#F0F3F6" font-size="42" font-weight="700">DISTILL</text>
+    </g>
+    <g transform="translate(65 405)">
+      <rect width="360" height="190" rx="12" fill="#161B22" stroke="#30363D" stroke-width="3"/>
+      <text x="30" y="54" fill="#F05A28" font-size="21" font-weight="700">04</text>
+      <text x="30" y="120" fill="#F0F3F6" font-size="42" font-weight="700">SCAN</text>
+    </g>
+  </g>
+
+  <g fill="none" stroke="#F05A28" stroke-width="4" marker-end="url(#arrow)">
+    <path d="M440 200 H515"/>
+    <path d="M715 310 V385"/>
+    <path d="M520 500 H445"/>
+    <path d="M245 610 C245 690 30 680 30 200 C30 120 48 120 48 120"/>
+  </g>
+  <rect x="51" y="642" width="260" height="43" rx="21.5" fill="#0D1117" stroke="#30363D"/>
+  <text x="181" y="671" fill="#9DA7B3" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" text-anchor="middle">new conversations</text>
+</svg>
