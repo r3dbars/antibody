@@ -124,7 +124,10 @@ should not return.
 
 An LLM judge can be wrong. New checkers therefore cannot block a build.
 
-![A failure pattern moves from a draft, to report-only calibration, to CI gating only after a human promotes it](assets/trust-ladder.svg)
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/trust-ladder-mobile.svg">
+  <img src="assets/trust-ladder.svg" alt="A failure pattern moves from a draft, to report-only calibration, to CI gating only after a human promotes it">
+</picture>
 
 - **Proposed** patterns are drafts for you to inspect.
 - **Calibrating** patterns report matches but cannot fail CI. Every accept or

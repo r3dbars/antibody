@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="570" viewBox="0 0 600 570" role="img" aria-labelledby="title desc">
+  <title id="title">Antibody checker trust ladder</title>
+  <desc id="desc">A checker moves from proposed, to report-only calibration, to trusted watching status after a human-reviewed commit.</desc>
+  <rect x="1" y="1" width="598" height="568" rx="14" fill="#0D1117" stroke="#30363D" stroke-width="2"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <g transform="translate(48 48)">
+      <text fill="#F05A28" font-size="16" font-weight="700">PROPOSED</text>
+      <text y="43" fill="#F0F3F6" font-size="29" font-weight="700">DRAFT ONLY</text>
+      <text y="73" fill="#9DA7B3" font-size="16">cannot block CI</text>
+    </g>
+    <line x1="48" y1="151" x2="552" y2="151" stroke="#30363D" stroke-width="2"/>
+
+    <g transform="translate(48 188)">
+      <text fill="#F05A28" font-size="16" font-weight="700">CALIBRATING</text>
+      <text y="43" fill="#F0F3F6" font-size="29" font-weight="700">REPORTS ONLY</text>
+      <text y="73" fill="#9DA7B3" font-size="16">cannot block CI</text>
+    </g>
+
+    <text x="300" y="304" fill="#F05A28" font-size="21" text-anchor="middle">↓</text>
+    <text x="300" y="331" fill="#9DA7B3" font-size="14" text-anchor="middle">human-reviewed commit</text>
+
+    <g transform="translate(48 367)">
+      <rect width="504" height="116" rx="10" fill="#161B22" stroke="#F05A28" stroke-width="2"/>
+      <text x="24" y="33" fill="#F05A28" font-size="16" font-weight="700">WATCHING</text>
+      <text x="24" y="79" fill="#F0F3F6" font-size="29" font-weight="700">TRUSTED</text>
+      <text x="306" y="79" fill="#F0F3F6" font-size="17" font-weight="700">MAY BLOCK CI</text>
+    </g>
+
+    <text x="300" y="529" fill="#9DA7B3" font-size="14" text-anchor="middle">Only you can approve promotion</text>
+  </g>
+</svg>

@@ -10,6 +10,7 @@ Product proof and README graphics.
 | `working-loop.svg` | review → flag → distill → scan mental model |
 | `working-loop-mobile.svg` | stacked mobile version of the working loop |
 | `trust-ladder.svg` | proposed → calibrating → watching safety model |
+| `trust-ladder-mobile.svg` | stacked mobile version of the trust ladder |
 | `banner.png` | GitHub social preview |
 
 Visual rule: show the real product first. Use a diagram only when it explains
