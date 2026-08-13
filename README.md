@@ -30,7 +30,10 @@ came back, so Antibody stopped the run.
 
 ## The whole idea
 
-![Review real conversations, flag bad behavior, distill it into a failure pattern, and scan future conversations](assets/working-loop.svg)
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/working-loop-mobile.svg">
+  <img src="assets/working-loop.svg" alt="Review real conversations, flag bad behavior, distill it into a failure pattern, and scan future conversations">
+</picture>
 
 1. **Review** conversations your application actually produced.
 2. **Flag** a bad one and explain the problem in your own words.

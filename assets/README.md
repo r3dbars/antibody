@@ -7,6 +7,7 @@ Product proof and README graphics.
 | `demo.gif` | real terminal demo in the README |
 | `demo.tape` | reproducible source for `demo.gif` |
 | `working-loop.svg` | review → flag → distill → scan mental model |
+| `working-loop-mobile.svg` | stacked mobile version of the working loop |
 | `trust-ladder.svg` | proposed → calibrating → watching safety model |
 | `banner.png` | GitHub social preview |
 
