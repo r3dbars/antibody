@@ -1,20 +1,15 @@
-Output demo.gif
+Output assets/demo.gif
 
 Set FontSize 20
-Set Width 1400
-Set Height 660
+Set Width 1280
+Set Height 720
 Set Theme "Catppuccin Mocha"
-Set Padding 24
-Set TypingSpeed 55ms
+Set Padding 32
+Set TypingSpeed 35ms
+Set Shell "bash"
 
 Hide
-Type "export TMPDIR=/tmp && clear"
+Type "bash assets/agent-demo.sh"
 Enter
-Sleep 500ms
 Show
-
-Type "npx antibody demo"
-Sleep 800ms
-Enter
-Sleep 5s
-Sleep 5s
+Sleep 14s

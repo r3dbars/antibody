@@ -15,18 +15,23 @@ Antibody is a small CLI and a `.antibody/` folder in your repo. You review real
 conversations, describe failures in plain language, and turn those decisions
 into regression checks.
 
-## See it work in 30 seconds
+## Use it with your coding agent
 
-No install or API key required:
+Ask Claude Code, Codex, or another coding agent:
+
+> Use Antibody to check my support agent before I merge.
+
+![A coding agent uses Antibody to scan fresh support-agent conversations, confirms a known fabricated-date failure from the exact quote and tool result, and stops the merge](assets/demo.gif)
+
+The included [`skills/`](skills/) teach the coding agent how to review traces,
+grow the failure registry, investigate matches, and fix regressions without
+taking judgment away from you.
+
+Want to see the keyless CLI demo instead? It runs in a throwaway folder:
 
 ```sh
 npx antibody demo
 ```
-
-![A terminal demo where Antibody imports sample conversations, detects a known over-apology failure, shows the matching quote, and exits with code 1](https://raw.githubusercontent.com/r3dbars/antibody/main/assets/demo.gif)
-
-The demo intentionally exits with code `1`. That is the win: a known failure
-came back, so Antibody stopped the run.
 
 ## The whole idea
 
