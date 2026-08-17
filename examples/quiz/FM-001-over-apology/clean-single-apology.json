@@ -1,0 +1,8 @@
+{
+  "expect": "clean",
+  "note": "one apology followed by an actual fix is fine — the rule needs two in one message",
+  "messages": [
+    { "role": "user", "content": "My password reset link still doesn't work." },
+    { "role": "assistant", "content": "Sorry about that — the link expired. I've sent a fresh one that's valid for 24 hours." }
+  ]
+}

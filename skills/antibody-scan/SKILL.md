@@ -18,6 +18,10 @@ antibody scan [trace files...] --json
 - Exit 1 means a `watching` failure mode has hits — a known, trusted-checker
   failure recurred. Exit 0 with hits on `calibrating` modes is informational.
 - `--only FM-001` and `--sample 50` control scope and cost.
+- In CI, run `antibody quiz` first: it grades every checker against the
+  committed cases in `.antibody/quiz/` and exits 1 if a `watching` checker
+  fails (or a watching judge has none) — never trust a scan verdict from a
+  judge that is currently failing its quiz. See `spec/quiz.md`.
 
 ## When a watching mode hits
 
@@ -42,6 +46,9 @@ antibody scan [trace files...] --json
 
 - Don't edit a failure mode's `status` to make a scan pass. Only humans
   promote or retire modes, via a committed diff.
+- Don't delete or weaken quiz cases to make `antibody quiz` pass. A failing
+  quiz means the checker regressed — fix the checker (its pattern or judge
+  prompt) and let the human review that diff.
 - Don't delete verdicts or scan history.
 - Don't treat `calibrating` hits as build failures — they're signal for
   calibration, not gates.

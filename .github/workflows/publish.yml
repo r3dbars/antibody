@@ -24,6 +24,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm install -g npm@latest   # OIDC publish needs npm >= 11.5
       - run: npm install --no-audit --no-fund
+      - run: npm run lint
       - run: npm test
       - name: skip if version already published
         id: check

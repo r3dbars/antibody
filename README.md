@@ -76,7 +76,12 @@ npx antibody distill       # turn flags into draft failure patterns
 npx antibody scan          # exit 1 if a trusted failure returned
 ```
 
-Put `antibody scan` in CI once your checkers have earned your trust.
+The CI gate is two commands once your checkers have earned your trust:
+
+```sh
+npx antibody quiz   # grade the graders against committed quiz cases
+npx antibody scan   # exit 1 if a trusted failure returned
+```
 
 Using Claude Code or another coding agent? The [`skills/`](skills/) directory
 teaches it the same loop. Ask it to *“install Antibody in this project and
@@ -93,6 +98,7 @@ There is no server or database. The state is ordinary files:
 ├── traces/               # normalized conversations; local only
 ├── verdicts/             # human decisions; one JSONL file per reviewer
 ├── registry/             # known failure patterns; Markdown
+├── quiz/                 # graded examples that prove each checker works
 ├── suggestions.jsonl     # matches waiting for a human decision
 └── scans/                 # scan summaries and trends
 ```
@@ -138,6 +144,15 @@ An LLM judge can be wrong. New checkers therefore cannot block a build.
 `npx antibody calibrate` shows agreement, true-positive rate, true-negative
 rate, and label count. Antibody may suggest a promotion; it never promotes a
 checker for you.
+
+Calibration proves a checker on your real traffic — but real traces are
+gitignored, so CI can't see them. That's what the **quiz** is for: committed,
+sanitized example conversations with a known right answer
+(`.antibody/quiz/FM-001/*.json`, see [`spec/quiz.md`](spec/quiz.md)). `npx
+antibody quiz` grades every active checker against its cases; a watching
+checker that fails its quiz — or a watching LLM judge with no quiz at all —
+fails the build before `scan` even runs. The graders are tested, not just
+trusted.
 
 ## Local where it matters
 

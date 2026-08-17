@@ -10,6 +10,7 @@ import { tracesFromFile } from './normalize.js';
 import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
 import { distill, renderDistill } from './distill.js';
+import { quiz, renderQuiz } from './quiz.js';
 import { startServer } from './serve.js';
 
 const HELP = `antibody — an immune system for your AI agent
@@ -29,6 +30,9 @@ usage: antibody <command> [args]
   distill                    draft failure modes from unprocessed flags (LLM)
   scan [files...] [--json]   check traces against every active failure mode;
        [--only FM] [--sample N]   exit 1 if a "watching" mode has hits
+  quiz [--fm FM]             grade every active checker against committed quiz
+                             cases; exit 1 if a "watching" checker fails (or a
+                             watching judge has no quiz) — run before scan in CI
   calibrate [--fm FM] [--write]   judge-vs-human agreement, TPR/TNR, suggestions
 
 Every command accepts --json for agent/script consumption.
@@ -174,6 +178,12 @@ async function main() {
         sample: args.flags.sample ? Number(args.flags.sample) : null,
       });
       console.log(asJson ? JSON.stringify(summary) : renderScanReport(summary));
+      process.exitCode = summary.exitCode;
+      return;
+    }
+    case 'quiz': {
+      const summary = await quiz({ only: args.flags.fm ?? args.flags.only ?? null });
+      console.log(asJson ? JSON.stringify(summary) : renderQuiz(summary));
       process.exitCode = summary.exitCode;
       return;
     }

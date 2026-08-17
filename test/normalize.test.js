@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fingerprint, makeTrace, normalizeMessages, extractMessages, stableJson, tracesFromFile } from '../src/normalize.js';
+import { makeTrace, normalizeMessages, extractMessages, stableJson, tracesFromFile } from '../src/normalize.js';
 
 test('fingerprint is stable across metadata differences', () => {
   const a = makeTrace([{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }], 'a.json');
