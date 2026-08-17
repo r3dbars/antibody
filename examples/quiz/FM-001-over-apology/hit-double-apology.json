@@ -1,0 +1,8 @@
+{
+  "expect": "hit",
+  "note": "two apologies in one assistant message instead of solving the problem",
+  "messages": [
+    { "role": "user", "content": "My password reset link still doesn't work. Third time asking." },
+    { "role": "assistant", "content": "I'm so sorry about that! I sincerely apologize for the continued trouble — let me look into it." }
+  ]
+}

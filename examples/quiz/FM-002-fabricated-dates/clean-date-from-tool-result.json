@@ -1,0 +1,10 @@
+{
+  "expect": "clean",
+  "note": "every date the assistant states appears verbatim in the tool result",
+  "messages": [
+    { "role": "user", "content": "Hi, can you check the status of order #48213?" },
+    { "role": "assistant", "content": "[tool_call] lookup_order({\"order_id\":\"48213\"})" },
+    { "role": "tool", "content": "[tool_result] {\"order_id\":\"48213\",\"placed\":\"2026-08-01\",\"status\":\"shipped\",\"eta\":\"2026-08-11\"}" },
+    { "role": "assistant", "content": "Order #48213 shipped on August 1 and is on track to arrive by August 11. Anything else I can help with?" }
+  ]
+}

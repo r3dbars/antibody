@@ -67,7 +67,17 @@ cd your-agent-project
 npx antibody init
 ```
 
-Then run the loop whenever you have fresh conversations:
+No conversation logs yet? Record them live — no logging code required:
+
+```sh
+npx antibody tap           # localhost proxy in front of the Anthropic API
+export ANTHROPIC_BASE_URL=http://localhost:4402
+# run your agent as usual; every conversation lands in .antibody/traces/
+```
+
+Already have logs? `import` understands common JSON/JSONL shapes plus OpenAI
+chat-completion logs, Anthropic request/response logs, and Claude Code
+session transcripts. Then run the loop whenever you have fresh conversations:
 
 ```sh
 npx antibody import logs/  # normalize JSON or JSONL conversations
@@ -76,7 +86,12 @@ npx antibody distill       # turn flags into draft failure patterns
 npx antibody scan          # exit 1 if a trusted failure returned
 ```
 
-Put `antibody scan` in CI once your checkers have earned your trust.
+The CI gate is two commands once your checkers have earned your trust:
+
+```sh
+npx antibody quiz   # grade the graders against committed quiz cases
+npx antibody scan   # exit 1 if a trusted failure returned
+```
 
 Using Claude Code or another coding agent? The [`skills/`](skills/) directory
 teaches it the same loop. Ask it to *“install Antibody in this project and
@@ -93,6 +108,7 @@ There is no server or database. The state is ordinary files:
 ├── traces/               # normalized conversations; local only
 ├── verdicts/             # human decisions; one JSONL file per reviewer
 ├── registry/             # known failure patterns; Markdown
+├── quiz/                 # graded examples that prove each checker works
 ├── suggestions.jsonl     # matches waiting for a human decision
 └── scans/                 # scan summaries and trends
 ```
@@ -139,6 +155,15 @@ An LLM judge can be wrong. New checkers therefore cannot block a build.
 rate, and label count. Antibody may suggest a promotion; it never promotes a
 checker for you.
 
+Calibration proves a checker on your real traffic — but real traces are
+gitignored, so CI can't see them. That's what the **quiz** is for: committed,
+sanitized example conversations with a known right answer
+(`.antibody/quiz/FM-001/*.json`, see [`spec/quiz.md`](spec/quiz.md)). `npx
+antibody quiz` grades every active checker against its cases; a watching
+checker that fails its quiz — or a watching LLM judge with no quiz at all —
+fails the build before `scan` even runs. The graders are tested, not just
+trusted.
+
 ## Local where it matters
 
 Raw conversations can contain sensitive data, so Antibody keeps them out of
@@ -172,8 +197,11 @@ behavior requires interpretation.
   `ANTHROPIC_API_KEY`. Rule checkers do not.
 - Calibration needs labels. Expect roughly 10 or more verdicts before treating
   a score as meaningful.
-- Import handles common JSON and JSONL message shapes. Unusual trace formats may
-  need an adapter.
+- Import handles common JSON and JSONL message shapes plus OpenAI,
+  Anthropic, and Claude Code log formats (`spec/trace.md`). Unusual trace
+  formats may still need an adapter.
+- `tap` proxies the Anthropic API only, and records what passes through it —
+  requests your agent makes directly to the real endpoint are not captured.
 - A trace fingerprint depends on normalized conversation text. Reformatting the
   same conversation can create a new trace.
 

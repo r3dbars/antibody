@@ -3,13 +3,30 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fingerprint, makeTrace, normalizeMessages, extractMessages, stableJson, tracesFromFile } from '../src/normalize.js';
+import { makeTrace, normalizeMessages, extractMessages, stableJson, tracesFromFile } from '../src/normalize.js';
 
 test('fingerprint is stable across metadata differences', () => {
   const a = makeTrace([{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }], 'a.json');
   const b = makeTrace([{ role: 'user', content: 'hi', timestamp: 123 }, { role: 'assistant', content: 'hello', id: 'x' }], 'b.jsonl:9');
   assert.equal(a.id, b.id);
   assert.match(a.id, /^tr-[0-9a-f]{12}$/);
+});
+
+// Golden id — freezes the canonical form of spec/trace.md (rule 4 separators
+// included). If this test breaks, every existing trace id in every workspace
+// breaks with it: that is a spec change, not a refactor.
+test('fingerprint matches the spec exactly', () => {
+  const t = makeTrace([{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }]);
+  assert.equal(t.id, 'tr-618388049247');
+});
+
+// Rule 4's reason to exist: without the U+0000/U+0001 separators, message
+// boundaries would vanish from the canonical string and these would collide
+// (a space-joined scheme canonicalizes both to "user auser b").
+test('fingerprint encodes message boundaries', () => {
+  const split = makeTrace([{ role: 'user', content: 'a' }, { role: 'user', content: 'b' }]);
+  const merged = makeTrace([{ role: 'user', content: 'auser b' }]);
+  assert.notEqual(split.id, merged.id);
 });
 
 test('fingerprint differs when content differs', () => {
