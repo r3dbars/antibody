@@ -30,8 +30,11 @@ is present.
 
 - `src/` — one file per concern: `cli.js` (dispatch), `store.js` (all file
   I/O), `normalize.js` (fingerprinting — spec'd in `spec/trace.md`; changing
-  it changes every trace id, so don't, casually), `check.js` (rule + judge
-  checkers), `scan.js`, `quiz.js`, `calibrate.js`, `distill.js`, `serve.js`.
+  it changes every trace id, so don't, casually — note the fingerprint
+  separators are `\u0000`/`\u0001` escapes; never let literal control
+  characters into source), `check.js` (rule + judge checkers), `scan.js`,
+  `quiz.js`, `calibrate.js`, `distill.js`, `serve.js` (review UI server),
+  `tap.js` (recording proxy).
 - `spec/` — file-format contracts. Code changes that alter a format must
   update the matching spec in the same commit.
 - `examples/` — the demo's traces, registry, and quiz cases; the e2e tests

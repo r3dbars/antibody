@@ -67,7 +67,17 @@ cd your-agent-project
 npx antibody init
 ```
 
-Then run the loop whenever you have fresh conversations:
+No conversation logs yet? Record them live — no logging code required:
+
+```sh
+npx antibody tap           # localhost proxy in front of the Anthropic API
+export ANTHROPIC_BASE_URL=http://localhost:4402
+# run your agent as usual; every conversation lands in .antibody/traces/
+```
+
+Already have logs? `import` understands common JSON/JSONL shapes plus OpenAI
+chat-completion logs, Anthropic request/response logs, and Claude Code
+session transcripts. Then run the loop whenever you have fresh conversations:
 
 ```sh
 npx antibody import logs/  # normalize JSON or JSONL conversations
@@ -187,8 +197,11 @@ behavior requires interpretation.
   `ANTHROPIC_API_KEY`. Rule checkers do not.
 - Calibration needs labels. Expect roughly 10 or more verdicts before treating
   a score as meaningful.
-- Import handles common JSON and JSONL message shapes. Unusual trace formats may
-  need an adapter.
+- Import handles common JSON and JSONL message shapes plus OpenAI,
+  Anthropic, and Claude Code log formats (`spec/trace.md`). Unusual trace
+  formats may still need an adapter.
+- `tap` proxies the Anthropic API only, and records what passes through it —
+  requests your agent makes directly to the real endpoint are not captured.
 - A trace fingerprint depends on normalized conversation text. Reformatting the
   same conversation can create a new trace.
 
