@@ -62,6 +62,7 @@ Supported graders:
 - `starts_with`
 - `includes`, `includes_any`, `includes_all`, `excludes`
 - `matches_regex`
+- `json_schema`
 - `path_exists`
 - `count_equals`, `count_lte`
 - `number_lte`, `number_gte`
