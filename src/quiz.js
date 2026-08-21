@@ -1,5 +1,7 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import YAML from 'yaml';
 import { assertWorkspace, loadTrace, ROOT_DIR } from './store.js';
 import { loadProduct, runProduct } from './product.js';
@@ -44,6 +46,21 @@ export function validateQuiz(quiz) {
     if (graders[0] === 'matches_regex') {
       try { new RegExp(assertion.matches_regex); } catch { errors.push(`${label}: expect[${index}].matches_regex is invalid`); }
     }
+  }
+  return errors;
+}
+
+export function validateQuizSet(quizzes) {
+  const errors = quizzes.flatMap((quiz) => validateQuiz(quiz));
+  const ids = new Set(quizzes.map((quiz) => quiz.id));
+  for (const quiz of quizzes) {
+    if (quiz.proof?.known_bad_outcome === 'fail' && !quiz.control?.case) {
+      errors.push(`${quiz.file || quiz.id}: known-bad regression quizzes require control.case`);
+    }
+    if (quiz.control?.case && !ids.has(quiz.control.case)) {
+      errors.push(`${quiz.file || quiz.id}: control quiz ${quiz.control.case} not found`);
+    }
+    if (quiz.control?.case === quiz.id) errors.push(`${quiz.file || quiz.id}: a quiz cannot control itself`);
   }
   return errors;
 }
@@ -162,7 +179,7 @@ export function selectQuizzes(quizzes, { only = null, suite = null, statuses = n
 export function runQuizzes({ only = null, suite = null, statuses = null, cwd = process.cwd() } = {}) {
   const product = loadProduct(cwd);
   const quizzes = listQuizzes(cwd);
-  const validation = quizzes.flatMap((quiz) => validateQuiz(quiz));
+  const validation = validateQuizSet(quizzes);
   if (validation.length) throw new Error(validation.join('\n'));
   const selected = selectQuizzes(quizzes, { only, suite, statuses, product, cwd });
   const results = [];
@@ -177,6 +194,9 @@ export function runQuizzes({ only = null, suite = null, statuses = null, cwd = p
       id: quiz.id,
       name: quiz.name,
       status: quiz.status,
+      failureMode: quiz.failure_mode ?? null,
+      proof: quiz.proof ?? null,
+      file: quiz.file,
       outcome: assertions.every((assertion) => assertion.passed) ? 'pass' : 'fail',
       assertions,
       metrics: run.result.metrics ?? {},
@@ -195,7 +215,94 @@ export function runQuizzes({ only = null, suite = null, statuses = null, cwd = p
   return summary;
 }
 
+function copyComparisonContract(sourceCwd, targetCwd) {
+  const source = path.join(sourceCwd, ROOT_DIR);
+  const target = path.join(targetCwd, ROOT_DIR);
+  fs.mkdirSync(target, { recursive: true });
+  for (const name of ['product.yml', 'quizzes', 'suites']) {
+    const from = path.join(source, name);
+    const to = path.join(target, name);
+    fs.rmSync(to, { recursive: true, force: true });
+    if (fs.existsSync(from)) fs.cpSync(from, to, { recursive: true, force: true });
+  }
+}
+
+function changedQuizFiles(ref, cwd) {
+  try {
+    const committed = execFileSync('git', ['diff', '--name-only', ref, 'HEAD', '--', `${ROOT_DIR}/quizzes`], { cwd, encoding: 'utf8' });
+    const working = execFileSync('git', ['status', '--short', '--', `${ROOT_DIR}/quizzes`], { cwd, encoding: 'utf8' })
+      .split('\n').filter(Boolean).map((line) => line.slice(3));
+    return new Set([...committed.split('\n').filter(Boolean), ...working]);
+  } catch {
+    return new Set();
+  }
+}
+
+export function compareQuizzes(ref, options = {}) {
+  const cwd = options.cwd ?? process.cwd();
+  try {
+    execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], { cwd, stdio: 'ignore' });
+  } catch {
+    throw new Error(`cannot resolve comparison ref ${ref}`);
+  }
+
+  const candidate = runQuizzes({ ...options, cwd });
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'antibody-compare-'));
+  let added = false;
+  let base;
+  try {
+    execFileSync('git', ['worktree', 'add', '--detach', temp, ref], { cwd, stdio: 'ignore' });
+    added = true;
+    copyComparisonContract(cwd, temp);
+    base = runQuizzes({ ...options, cwd: temp });
+  } finally {
+    if (added) {
+      try { execFileSync('git', ['worktree', 'remove', '--force', temp], { cwd, stdio: 'ignore' }); } catch { /* best-effort cleanup */ }
+    }
+    if (fs.existsSync(temp)) fs.rmSync(temp, { recursive: true, force: true });
+  }
+
+  const baseById = new Map(base.results.map((result) => [result.id, result]));
+  const changed = changedQuizFiles(ref, cwd);
+  const results = candidate.results.map((current) => {
+    const previous = baseById.get(current.id) ?? { outcome: 'error', error: 'quiz was not evaluated at base' };
+    const expectedBase = current.proof?.known_bad_outcome ?? null;
+    let verdict = 'pass';
+    if (previous.outcome === 'error' || current.outcome === 'error') verdict = 'error';
+    else if (current.outcome !== 'pass') verdict = 'candidate-fails';
+    else if (expectedBase && previous.outcome !== expectedBase) verdict = 'base-proof-mismatch';
+    else if (previous.outcome === 'fail') verdict = 'fixed';
+    return {
+      id: current.id,
+      name: current.name,
+      status: current.status,
+      changed: changed.has(current.file),
+      expectedBase,
+      base: previous.outcome,
+      candidate: current.outcome,
+      verdict,
+      baseError: previous.error,
+      candidateError: current.error,
+      metrics: { base: previous.metrics ?? {}, candidate: current.metrics ?? {} },
+    };
+  });
+  const summary = {
+    at: new Date().toISOString(),
+    product: candidate.product,
+    compare: ref,
+    quizzes: results.length,
+    fixed: results.filter((item) => item.verdict === 'fixed').length,
+    unchangedPassing: results.filter((item) => item.verdict === 'pass').length,
+    failed: results.filter((item) => ['candidate-fails', 'base-proof-mismatch'].includes(item.verdict)).length,
+    errors: results.filter((item) => item.verdict === 'error').length,
+    results,
+  };
+  summary.exitCode = summary.errors ? 2 : summary.failed ? 1 : 0;
+  return summary;
+}
+
 export function renderQuizReport(summary) {
+  if (summary.compare) return renderComparisonReport(summary);
   const lines = [`antibody test — ${summary.product}`, ''];
   for (const result of summary.results) {
     const mark = result.outcome === 'pass' ? '✓' : result.outcome === 'fail' ? '✗' : '!';
@@ -206,6 +313,17 @@ export function renderQuizReport(summary) {
     }
   }
   lines.push('', `${summary.passed}/${summary.quizzes} passed · ${summary.failed} failed · ${summary.errors} unable to evaluate`);
+  return lines.join('\n');
+}
+
+export function renderComparisonReport(summary) {
+  const lines = [`ANTIBODY IMMUNIZATION REPORT`, '', `Product: ${summary.product}`, `Compared with: ${summary.compare}`, ''];
+  lines.push('QUIZ                         BASE       CANDIDATE  VERDICT');
+  for (const result of summary.results) {
+    lines.push(`${result.id.padEnd(28)} ${result.base.padEnd(10)} ${result.candidate.padEnd(10)} ${result.verdict}${result.changed ? ' (changed)' : ''}`);
+  }
+  lines.push('', `${summary.fixed} fixed · ${summary.unchangedPassing} still passing · ${summary.failed} failed · ${summary.errors} unable to evaluate`);
+  lines.push(`VERDICT: ${summary.exitCode === 0 ? 'PASS' : summary.exitCode === 1 ? 'FAIL' : 'UNABLE TO EVALUATE'}`);
   return lines.join('\n');
 }
 

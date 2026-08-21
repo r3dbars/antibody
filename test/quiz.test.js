@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gradeAssertion, validateQuiz } from '../src/quiz.js';
+import { gradeAssertion, validateQuiz, validateQuizSet } from '../src/quiz.js';
 
 const envelope = {
   status: 'ok',
@@ -41,4 +41,17 @@ test('quiz validation requires a lifecycle and exactly one safe grader', () => {
   assert.deepEqual(validateQuiz(valid), []);
   assert.match(validateQuiz({ ...valid, status: 'watching' })[0], /status must be/);
   assert.match(validateQuiz({ ...valid, expect: [{ path: 'result.answer', includes: 'Friday', equals: 'Friday' }] })[0], /exactly one/);
+});
+
+test('known-bad regression quizzes require a separate existing control', () => {
+  const regression = {
+    schema: 'antibody.quiz.v1', id: 'FM-001.001', name: 'bad-case', status: 'proving',
+    input: {}, expect: [{ path: 'result', expected_output: true }],
+    proof: { known_bad_outcome: 'fail' },
+  };
+  assert.match(validateQuizSet([regression])[0], /require control\.case/);
+  regression.control = { case: 'FM-001.002' };
+  assert.match(validateQuizSet([regression])[0], /control quiz FM-001.002 not found/);
+  const control = { ...regression, id: 'FM-001.002', name: 'healthy-control', proof: undefined, control: undefined };
+  assert.deepEqual(validateQuizSet([regression, control]), []);
 });
