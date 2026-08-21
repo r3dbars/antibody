@@ -82,4 +82,3 @@ A new regression quiz is proven only when:
 2. The candidate revision passes without a weaker grader.
 3. Its control passes on the candidate.
 4. Existing blocking quizzes still pass.
-

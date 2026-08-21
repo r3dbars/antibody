@@ -31,4 +31,3 @@ Read `spec/philosophy.md` first. Its rules are binding.
 - Do not claim the issue fixed unless known-bad fails and candidate passes.
 - Do not put raw customer or personal data in Git.
 - Fix the failure family, not only the original sentence.
-

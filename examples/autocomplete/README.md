@@ -19,4 +19,3 @@ Bad output:
 The quiz in `quiz.yml` accepts several concise completions. It tests the
 behavioral contract: preserve the visible deadline, avoid a contradictory
 deadline, respond quickly, and leave the editor text intact.
-

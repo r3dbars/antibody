@@ -20,4 +20,3 @@ These rules are binding for Antibody's CLI, skills, adapters, and examples:
 Detector trust and quiz trust are separate. A detector asks whether a failure
 mode can be found across unfamiliar traces. A quiz asks whether one stable,
 reproducible case can safely block a merge.
-

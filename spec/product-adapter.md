@@ -71,4 +71,3 @@ returned JSON; they do not execute arbitrary grader code.
 The adapter is application code and therefore part of the product's normal
 trust boundary. Raw traces stay local by default. Committed quiz inputs must be
 synthetic, redacted, or explicitly approved for publication.
-

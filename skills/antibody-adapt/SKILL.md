@@ -26,4 +26,3 @@ agnostic adapter contract.
 
 Keep the adapter narrow. It translates inputs and outputs; it does not become a
 second implementation of the product.
-
