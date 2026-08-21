@@ -5,22 +5,23 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initWorkspace, saveTrace, appendVerdict, appendSuggestion, ROOT_DIR } from './store.js';
+import { initWorkspace, saveTrace, appendVerdict, appendSuggestion, saveQuizRun, ROOT_DIR } from './store.js';
 import { tracesFromFile } from './normalize.js';
 import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
 import { distill, renderDistill } from './distill.js';
 import { startServer } from './serve.js';
-import { createQuiz, listQuizzes, renderQuizReport, runQuizzes, validateQuiz } from './quiz.js';
+import { compareQuizzes, createQuiz, listQuizzes, renderQuizReport, runQuizzes, validateQuizSet } from './quiz.js';
+import { emitCiReport } from './gate.js';
 
-const HELP = `antibody — an immune system for your AI agent
-Flag a failure once. Catch it forever.
+const HELP = `antibody — an immune system for your AI product
+Turn a failure into a permanent regression test.
 
 usage: antibody <command> [args]
 
   demo                       watch antibody catch a mistake in sample traces
                              (throwaway folder, no API key, nothing to clean up)
-  init                       create .antibody/ (config, registry, verdicts, scans)
+  init                       create the local .antibody/ workspace
   import <files...>          normalize + fingerprint traces into the workspace
   review [--port N]          open the human review queue on localhost
   verdict <trace> <bad|ok>   record a verdict from the terminal or an agent
@@ -37,7 +38,9 @@ usage: antibody <command> [args]
   quiz new --fm FM-001            create a safe draft quiz skeleton
        [--from tr-...] [--name name]
   test [--only ID|FM]             run quizzes through the product adapter
-       [--suite NAME]
+       [--suite NAME] [--compare REF]
+  gate --ci                       run only human-promoted blocking quizzes;
+                                  exit 1 for regressions, 2 if unable to evaluate
 
 Every command accepts --json for agent/script consumption.
 Docs and file formats: spec/ in the antibody repository.`;
@@ -197,7 +200,7 @@ async function main() {
       }
       const quizzes = listQuizzes();
       if (subcommand === 'validate') {
-        const errors = quizzes.flatMap((quiz) => validateQuiz(quiz));
+        const errors = validateQuizSet(quizzes);
         if (errors.length) throw new Error(errors.join('\n'));
         const result = { valid: quizzes.length, errors: [] };
         return console.log(asJson ? JSON.stringify(result) : `✓ ${quizzes.length} quiz${quizzes.length === 1 ? '' : 'zes'} valid`);
@@ -218,8 +221,18 @@ async function main() {
       throw new Error('usage: antibody quiz <new|list|inspect|validate>');
     }
     case 'test': {
-      const summary = runQuizzes({ only: args.flags.only ?? null, suite: args.flags.suite ?? null });
+      const options = { only: args.flags.only ?? null, suite: args.flags.suite ?? null };
+      const summary = args.flags.compare ? compareQuizzes(String(args.flags.compare), options) : runQuizzes(options);
+      summary.report = saveQuizRun(summary);
       console.log(asJson ? JSON.stringify(summary) : renderQuizReport(summary));
+      process.exitCode = summary.exitCode;
+      return;
+    }
+    case 'gate': {
+      const summary = runQuizzes({ suite: args.flags.suite ?? null, statuses: ['blocking'] });
+      summary.report = saveQuizRun(summary);
+      console.log(asJson ? JSON.stringify(summary) : renderQuizReport(summary));
+      if (args.flags.ci) emitCiReport(summary);
       process.exitCode = summary.exitCode;
       return;
     }
