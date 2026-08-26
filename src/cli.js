@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 // antibody — an immune system for your AI agent.
 // Plain files, no daemon. `antibody help` for usage.
 import fs from 'node:fs';
@@ -11,6 +12,7 @@ import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
 import { distill, renderDistill } from './distill.js';
 import { startServer } from './serve.js';
+import { startTap } from './tap.js';
 import { compareQuizzes, createQuiz, listQuizzes, renderQuizReport, runQuizzes, validateQuizSet } from './quiz.js';
 import { emitCiReport } from './gate.js';
 
@@ -23,6 +25,9 @@ usage: antibody <command> [args]
                              (throwaway folder, no API key, nothing to clean up)
   init                       create the local .antibody/ workspace
   import <files...>          normalize + fingerprint traces into the workspace
+  tap [--port N]             record traces live: a localhost proxy in front of
+      [--target URL]             the Anthropic API — point ANTHROPIC_BASE_URL at
+                             it; every conversation lands in traces/, no logging code
   review [--port N]          open the human review queue on localhost
   verdict <trace> <bad|ok>   record a verdict from the terminal or an agent
           [--note "..."] [--fm FM-001]
@@ -30,7 +35,7 @@ usage: antibody <command> [args]
           [--reason "..."]       shows in review for the human to accept/dismiss
   distill                    draft failure modes from unprocessed flags (LLM)
   scan [files...] [--json]   check traces against every active failure mode;
-       [--only FM] [--sample N]   exit 1 if a "watching" mode has hits
+       [--only FM] [--sample N]   exit 0 clean, 1 watching hit, 2 unable to evaluate
   calibrate [--fm FM] [--write]   judge-vs-human agreement, TPR/TNR, suggestions
   quiz list [--status STATUS]     list executable regression quizzes
   quiz inspect <id>               print one quiz
@@ -150,6 +155,16 @@ async function main() {
       const r = importTraces(args._);
       if (asJson) return console.log(JSON.stringify(r));
       return console.log(`✓ ${r.added} new trace${r.added === 1 ? '' : 's'} imported${r.seen ? `, ${r.seen} already known` : ''} (${r.files} file${r.files === 1 ? '' : 's'})`);
+    }
+    case 'tap': {
+      const port = Number(args.flags.port ?? 4402);
+      const target = String(args.flags.target ?? 'https://api.anthropic.com');
+      await startTap({ port, target, log: (line) => console.log(`  ${line}`) });
+      console.log(`tap: recording proxy on http://localhost:${port} → ${target}`);
+      console.log(`\n  export ANTHROPIC_BASE_URL=http://localhost:${port}\n`);
+      console.log('then run your agent as usual — every conversation is saved to .antibody/traces/.');
+      console.log('ctrl-c to stop. next: antibody review');
+      return new Promise(() => {}); // stay alive until interrupted
     }
     case 'review': {
       const port = Number(args.flags.port ?? 4400);

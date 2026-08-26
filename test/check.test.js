@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runRule, transcript } from '../src/check.js';
+import { runRule, transcript, runJudge, setClient } from '../src/check.js';
 import { computeCalibration, suggestStatus } from '../src/calibrate.js';
 
 const trace = {
@@ -65,4 +65,84 @@ test('suggestStatus promotes only with enough labels and agreement', () => {
   assert.equal(suggestStatus({}, { n_labels: 3, agreement: 1, tpr: 1 }).status, 'calibrating');
   assert.equal(suggestStatus({}, { n_labels: 12, agreement: 0.92, tpr: 0.9 }).status, 'watching');
   assert.equal(suggestStatus({}, { n_labels: 12, agreement: 0.6, tpr: 0.5, tnr: 0.7 }).status, 'calibrating');
+});
+
+
+const judgeTrace = {
+  id: 'tr-defdefdefdef',
+  messages: [
+    { role: 'user', content: 'status of my refund?' },
+    { role: 'assistant', content: 'The refund is processing.' },
+  ],
+};
+const judgeFm = {
+  id: 'FM-003',
+  name: 'invents-dates-not-in-sources',
+  description: 'states a date that is not in the sources',
+  checker: { type: 'judge' },
+};
+const judgeConfig = { models: { judge: 'claude-haiku-4-5' } };
+
+function mockCreate(payload) {
+  setClient({
+    messages: {
+      create: async () => (typeof payload === 'function' ? payload() : payload),
+    },
+  });
+}
+
+test('judge refusal is fail-closed: hit null, never hit false', async () => {
+  mockCreate({ stop_reason: 'refusal', content: [], usage: {} });
+  try {
+    const r = await runJudge(judgeTrace, judgeFm, judgeConfig);
+    assert.equal(r.hit, null);
+    assert.notEqual(r.hit, false);
+    assert.match(r.error, /declined|refusal|safety/i);
+  } finally {
+    setClient(null);
+  }
+});
+
+test('judge parse error is fail-closed: hit null, never hit false', async () => {
+  mockCreate({
+    stop_reason: 'end_turn',
+    content: [{ type: 'text', text: 'I cannot put this in JSON' }],
+    usage: {},
+  });
+  try {
+    const r = await runJudge(judgeTrace, judgeFm, judgeConfig);
+    assert.equal(r.hit, null);
+    assert.notEqual(r.hit, false);
+    assert.match(r.error, /unparseable/i);
+  } finally {
+    setClient(null);
+  }
+});
+
+test('judge network error is fail-closed: hit null, never hit false', async () => {
+  mockCreate(() => { throw new Error('connect ECONNREFUSED'); });
+  try {
+    const r = await runJudge(judgeTrace, judgeFm, judgeConfig);
+    assert.equal(r.hit, null);
+    assert.notEqual(r.hit, false);
+    assert.match(r.error, /ECONNREFUSED|failed/i);
+  } finally {
+    setClient(null);
+  }
+});
+
+test('valid negative judge verdict is hit false with no error', async () => {
+  mockCreate({
+    stop_reason: 'end_turn',
+    content: [{ type: 'text', text: JSON.stringify({ hit: false, line: 0, quote: '', reason: 'no invented date' }) }],
+    usage: { input_tokens: 10, output_tokens: 8 },
+  });
+  try {
+    const r = await runJudge(judgeTrace, judgeFm, judgeConfig);
+    assert.equal(r.hit, false);
+    assert.equal(r.error, undefined);
+    assert.match(r.reason, /no invented date/);
+  } finally {
+    setClient(null);
+  }
 });

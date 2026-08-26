@@ -17,8 +17,10 @@ antibody scan [trace files...] --json
 ```
 
 - No args scans every stored trace; passing files imports them first.
-- Exit 1 means a `watching` failure mode has hits — a known, trusted-checker
-  failure recurred. Exit 0 with hits on `calibrating` modes is informational.
+- Exit 0: every watching checker is clean. Exit 1: a watching mode hit.
+  Exit 2: a watching judge could not be evaluated (refusal, parse, network).
+  Calibrating hits and errors report but never gate. A keyless judge skip is
+  not an error.
 - `--only FM-001` and `--sample 50` control scope and cost.
 
 ## When a watching mode hits
