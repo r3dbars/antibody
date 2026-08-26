@@ -1,26 +1,33 @@
 #!/usr/bin/env node
+// @ts-nocheck
 // antibody — an immune system for your AI agent.
-// Seven commands, plain files, no daemon. `antibody help` for usage.
+// Plain files, no daemon. `antibody help` for usage.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initWorkspace, saveTrace, appendVerdict, appendSuggestion, ROOT_DIR } from './store.js';
+import { initWorkspace, saveTrace, appendVerdict, appendSuggestion, saveQuizRun, ROOT_DIR } from './store.js';
 import { tracesFromFile } from './normalize.js';
 import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
 import { distill, renderDistill } from './distill.js';
 import { startServer } from './serve.js';
+import { startTap } from './tap.js';
+import { compareQuizzes, createQuiz, listQuizzes, renderQuizReport, runQuizzes, validateQuizSet } from './quiz.js';
+import { emitCiReport } from './gate.js';
 
-const HELP = `antibody — an immune system for your AI agent
-Flag a failure once. Catch it forever.
+const HELP = `antibody — an immune system for your AI product
+Turn a failure into a permanent regression test.
 
 usage: antibody <command> [args]
 
   demo                       watch antibody catch a mistake in sample traces
                              (throwaway folder, no API key, nothing to clean up)
-  init                       create .antibody/ (config, registry, verdicts, scans)
+  init                       create the local .antibody/ workspace
   import <files...>          normalize + fingerprint traces into the workspace
+  tap [--port N]             record traces live: a localhost proxy in front of
+      [--target URL]             the Anthropic API — point ANTHROPIC_BASE_URL at
+                             it; every conversation lands in traces/, no logging code
   review [--port N]          open the human review queue on localhost
   verdict <trace> <bad|ok>   record a verdict from the terminal or an agent
           [--note "..."] [--fm FM-001]
@@ -28,8 +35,17 @@ usage: antibody <command> [args]
           [--reason "..."]       shows in review for the human to accept/dismiss
   distill                    draft failure modes from unprocessed flags (LLM)
   scan [files...] [--json]   check traces against every active failure mode;
-       [--only FM] [--sample N]   exit 1 if a "watching" mode has hits
+       [--only FM] [--sample N]   exit 0 clean, 1 watching hit, 2 unable to evaluate
   calibrate [--fm FM] [--write]   judge-vs-human agreement, TPR/TNR, suggestions
+  quiz list [--status STATUS]     list executable regression quizzes
+  quiz inspect <id>               print one quiz
+  quiz validate                   validate every quiz
+  quiz new --fm FM-001            create a safe draft quiz skeleton
+       [--from tr-...] [--name name]
+  test [--only ID|FM]             run quizzes through the product adapter
+       [--suite NAME] [--compare REF]
+  gate --ci                       run only human-promoted blocking quizzes;
+                                  exit 1 for regressions, 2 if unable to evaluate
 
 Every command accepts --json for agent/script consumption.
 Docs and file formats: spec/ in the antibody repository.`;
@@ -140,6 +156,16 @@ async function main() {
       if (asJson) return console.log(JSON.stringify(r));
       return console.log(`✓ ${r.added} new trace${r.added === 1 ? '' : 's'} imported${r.seen ? `, ${r.seen} already known` : ''} (${r.files} file${r.files === 1 ? '' : 's'})`);
     }
+    case 'tap': {
+      const port = Number(args.flags.port ?? 4402);
+      const target = String(args.flags.target ?? 'https://api.anthropic.com');
+      await startTap({ port, target, log: (line) => console.log(`  ${line}`) });
+      console.log(`tap: recording proxy on http://localhost:${port} → ${target}`);
+      console.log(`\n  export ANTHROPIC_BASE_URL=http://localhost:${port}\n`);
+      console.log('then run your agent as usual — every conversation is saved to .antibody/traces/.');
+      console.log('ctrl-c to stop. next: antibody review');
+      return new Promise(() => {}); // stay alive until interrupted
+    }
     case 'review': {
       const port = Number(args.flags.port ?? 4400);
       await startServer({ port });
@@ -180,6 +206,50 @@ async function main() {
     case 'calibrate': {
       const rows = await calibrate({ only: args.flags.fm ?? null, write: Boolean(args.flags.write) });
       return console.log(asJson ? JSON.stringify(rows) : renderCalibration(rows, Boolean(args.flags.write)));
+    }
+    case 'quiz': {
+      const [subcommand, id] = args._;
+      if (subcommand === 'new') {
+        const created = createQuiz({ fm: args.flags.fm, from: args.flags.from, name: args.flags.name });
+        return console.log(asJson ? JSON.stringify(created) : `created ${created.file}\nstatus: draft — edit the input and behavioral contract before running it`);
+      }
+      const quizzes = listQuizzes();
+      if (subcommand === 'validate') {
+        const errors = validateQuizSet(quizzes);
+        if (errors.length) throw new Error(errors.join('\n'));
+        const result = { valid: quizzes.length, errors: [] };
+        return console.log(asJson ? JSON.stringify(result) : `✓ ${quizzes.length} quiz${quizzes.length === 1 ? '' : 'zes'} valid`);
+      }
+      if (subcommand === 'inspect') {
+        const quiz = quizzes.find((item) => item.id === id);
+        if (!quiz) throw new Error(`quiz ${id ?? '(missing id)'} not found`);
+        const output = { ...quiz };
+        delete output.file;
+        return console.log(asJson ? JSON.stringify(quiz) : JSON.stringify(output, null, 2));
+      }
+      if (subcommand === 'list' || !subcommand) {
+        const selected = args.flags.status ? quizzes.filter((quiz) => quiz.status === args.flags.status) : quizzes;
+        if (asJson) return console.log(JSON.stringify(selected));
+        if (!selected.length) return console.log('no quizzes found');
+        return console.log(selected.map((quiz) => `${quiz.id}\t${quiz.status}\t${quiz.name}`).join('\n'));
+      }
+      throw new Error('usage: antibody quiz <new|list|inspect|validate>');
+    }
+    case 'test': {
+      const options = { only: args.flags.only ?? null, suite: args.flags.suite ?? null };
+      const summary = args.flags.compare ? compareQuizzes(String(args.flags.compare), options) : runQuizzes(options);
+      summary.report = saveQuizRun(summary);
+      console.log(asJson ? JSON.stringify(summary) : renderQuizReport(summary));
+      process.exitCode = summary.exitCode;
+      return;
+    }
+    case 'gate': {
+      const summary = runQuizzes({ suite: args.flags.suite ?? null, statuses: ['blocking'] });
+      summary.report = saveQuizRun(summary);
+      console.log(asJson ? JSON.stringify(summary) : renderQuizReport(summary));
+      if (args.flags.ci) emitCiReport(summary);
+      process.exitCode = summary.exitCode;
+      return;
     }
     case 'version': {
       const pkg = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));

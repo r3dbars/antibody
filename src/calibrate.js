@@ -1,3 +1,4 @@
+// @ts-check
 // antibody calibrate — measure each checker against human ground truth.
 // Agreement alone lies when failures are rare (a judge that always says
 // "clean" scores ~95%), so TPR/TNR are first-class (design decision D7).
@@ -6,6 +7,11 @@ import { listFms, loadTrace, loadConfig, loadVerdicts, latestVerdicts, saveFm } 
 import { check, pool, hasApiKey } from './check.js';
 
 // Pure math, unit-testable: labels/predictions are arrays of {trace, bad|hit}.
+/**
+ * @param {{trace: string, bad: boolean}[]} labels
+ * @param {{trace: string, hit: boolean}[]} predictions
+ * @returns {{n_labels: number, agreement: number|null, tpr: number|null, tnr: number|null, last_checked?: string, n_errors?: number}}
+ */
 export function computeCalibration(labels, predictions) {
   const predByTrace = new Map(predictions.map((p) => [p.trace, p.hit]));
   let agree = 0;
@@ -26,14 +32,19 @@ export function computeCalibration(labels, predictions) {
   };
 }
 
+/**
+ * @param {{status?: string}} fm
+ * @param {{n_labels: number, agreement: number|null, tpr: number|null, tnr: number|null}} cal
+ */
 export function suggestStatus(fm, cal) {
   if (cal.n_labels < 5) return { status: 'calibrating', why: `only ${cal.n_labels} labels — needs at least 5` };
-  if (cal.agreement >= 0.85 && (cal.tpr == null || cal.tpr >= 0.7)) {
+  if (cal.agreement != null && cal.agreement >= 0.85 && (cal.tpr == null || cal.tpr >= 0.7)) {
     return { status: 'watching', why: `agreement ${pct(cal.agreement)} over ${cal.n_labels} labels` };
   }
   return { status: 'calibrating', why: `agreement ${pct(cal.agreement)} (TPR ${pct(cal.tpr)}, TNR ${pct(cal.tnr)}) — below the trust bar` };
 }
 
+/** @param {number|null|undefined} x */
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`);
 
 export async function calibrate({ only = null, write = false, cwd = process.cwd() } = {}) {
@@ -46,7 +57,7 @@ export async function calibrate({ only = null, write = false, cwd = process.cwd(
   for (const fm of fms) {
     // Ground truth: explicit verdicts on this FM, plus open-ended flags on its
     // example traces (the flags that created the FM are labels for it too).
-    const exampleIds = new Set((fm.examples ?? []).map((e) => e.trace));
+    const exampleIds = new Set((fm.examples ?? []).map((/** @type {any} */ e) => e.trace));
     const labels = verdicts
       .filter((v) => v.fm === fm.id || (v.fm == null && exampleIds.has(v.trace)))
       .map((v) => ({ trace: v.trace, bad: v.verdict === 'bad' }));
@@ -67,10 +78,12 @@ export async function calibrate({ only = null, write = false, cwd = process.cwd(
         return { trace: l.trace, hit: undefined };
       }
       const result = await check(trace, fm, config, usage);
-      return { trace: l.trace, hit: result.error ? undefined : result.hit };
+      return { trace: l.trace, hit: result.error ? undefined : result.hit, error: result.error };
     });
-    const cal = computeCalibration(labels, predictions.filter((p) => p.hit !== undefined));
+    const usable = /** @type {{trace: string, hit: boolean}[]} */ (predictions.filter((p) => typeof p.hit === 'boolean'));
+    const cal = computeCalibration(labels, usable);
     cal.last_checked = new Date().toISOString().slice(0, 10);
+    cal.n_errors = predictions.filter((p) => p.error).length;
     const suggestion = suggestStatus(fm, cal);
     if (write) {
       fm.calibration = cal;
@@ -81,6 +94,7 @@ export async function calibrate({ only = null, write = false, cwd = process.cwd(
   return out;
 }
 
+/** @param {any[]} rows @param {boolean} wrote */
 export function renderCalibration(rows, wrote) {
   const lines = [];
   for (const r of rows) {
@@ -89,7 +103,8 @@ export function renderCalibration(rows, wrote) {
       continue;
     }
     const c = r.calibration;
-    lines.push(`- ${r.id} ${r.name} [${r.status}] — agrees with your labels ${pct(c.agreement)} (TPR ${pct(c.tpr)}, TNR ${pct(c.tnr)}, n=${c.n_labels})`);
+    const errors = c.n_errors ? `, ${c.n_errors} error${c.n_errors === 1 ? '' : 's'}` : '';
+    lines.push(`- ${r.id} ${r.name} [${r.status}] — agrees with your labels ${pct(c.agreement)} (TPR ${pct(c.tpr)}, TNR ${pct(c.tnr)}, n=${c.n_labels}${errors})`);
     if (r.suggestion.status !== r.status) {
       lines.push(`    suggests: status → ${r.suggestion.status} (${r.suggestion.why}) — edit the FM file and commit to apply`);
     }

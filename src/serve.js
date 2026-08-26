@@ -1,3 +1,4 @@
+// @ts-nocheck
 // antibody review — a localhost server for the human review surface.
 // One static HTML file + three JSON endpoints over the same files the CLI and
 // agents use. Binds 127.0.0.1 only; nothing is exposed to the network.

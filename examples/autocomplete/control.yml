@@ -1,0 +1,23 @@
+schema: antibody.quiz.v1
+id: FM-0042.002
+failure_mode: FM-0042
+name: allow-visible-deadline
+status: proving
+suite: autocomplete-demo
+
+input:
+  register: chat
+  typed_prefix: "Yep — I'll send "
+  screen_context:
+    messages:
+      - speaker: Maya
+        text: Can you send the updated deck after lunch?
+
+expect:
+  - path: result.action
+    equals: show
+  - path: result.suggestion
+    includes: after lunch
+
+source:
+  synthetic: true

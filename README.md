@@ -4,16 +4,17 @@
 [![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**The immune system for your AI application.** Flag a failure once. Catch it
-whenever it comes back.
+**Turn an AI failure into a permanent regression test.** Discover failures in
+real traces, reproduce them as executable quizzes, and block them from coming
+back.
 
 Your tests catch deterministic bugs. Antibody catches recurring AI behavior you
 never want to ship again: fabricated facts, ignored instructions, broken tool
 use, unhelpful refusals, or whatever *you* decide is wrong.
 
-Antibody is a small CLI and a `.antibody/` folder in your repo. You review real
-conversations, describe failures in plain language, and turn those decisions
-into regression checks.
+Antibody is a small CLI and a `.antibody/` folder in your repo. It has two
+loops: discovery finds recurring mistakes in real traces; immunization runs the
+actual product against durable regression quizzes.
 
 ## Use it with your coding agent
 
@@ -21,7 +22,7 @@ Ask Claude Code, Codex, or another coding agent:
 
 > Use Antibody to check my support agent before I merge.
 
-![A coding agent uses Antibody to scan fresh support-agent conversations, confirms a known fabricated-date failure from the exact quote and tool result, and stops the merge](assets/demo.gif)
+![Staged illustration of a coding-agent workflow. The GIF is not a live capture; run `npx antibody demo` or `scripts/record-demo.sh` for the real CLI.](assets/demo.gif)
 
 The included [`skills/`](skills/) teach the coding agent how to review traces,
 grow the failure registry, investigate matches, and fix regressions without
@@ -33,7 +34,22 @@ Want to see the keyless CLI demo instead? It runs in a throwaway folder:
 npx antibody demo
 ```
 
-## The whole idea
+## The two loops
+
+```text
+Discovery:    import → review → flag → distill → calibrate → scan
+Immunization: capture → reproduce → quiz → fix → prove → gate
+```
+
+The discovery loop answers, “What kinds of mistakes does this product make in
+the real world?” The immunization loop answers, “Can this version of the
+product avoid a known failure?”
+
+The human still defines what is bad. A trace is evidence, not automatically a
+test. A new quiz must prove the known-bad revision fails and the candidate
+passes before it can become a trusted gate.
+
+## Discover failures
 
 <picture>
   <source media="(max-width: 600px)" srcset="assets/working-loop-mobile.svg">
@@ -58,6 +74,37 @@ If you know regression testing, you already know the mental model:
 Antibody does not decide what “good AI” means. You make that call; Antibody
 helps you remember it.
 
+## Immunize the product
+
+A product adapter runs one case through the real product and returns structured
+JSON. A quiz applies small deterministic assertions to that result. Antibody
+does not care whether the product uses Swift, Python, TypeScript, or something
+else.
+
+```text
+.antibody/
+├── product.yml            # how to run this product
+├── quizzes/               # reproducible inputs + expected contracts
+└── suites/                # report-only or blocking collections
+```
+
+Every regression should include a nearby healthy control. This prevents broad
+fixes such as avoiding fabricated dates by never mentioning dates at all.
+
+```sh
+antibody quiz validate                 # check the committed contracts
+antibody test                          # run report-only and blocking quizzes
+antibody test --compare origin/main    # prove base fails and branch passes
+antibody gate --ci                     # run human-promoted blocking quizzes
+```
+
+Exit `1` means a product regression. Exit `2` means Antibody could not evaluate
+the product. Both block a merge; a broken harness never masquerades as a pass.
+
+The contracts are documented in [`spec/product-adapter.md`](spec/product-adapter.md)
+and [`spec/quiz.md`](spec/quiz.md). The ten binding rules are in
+[`spec/philosophy.md`](spec/philosophy.md).
+
 ## Use it on your agent
 
 Initialize Antibody inside your project:
@@ -73,8 +120,15 @@ Then run the loop whenever you have fresh conversations:
 npx antibody import logs/  # normalize JSON or JSONL conversations
 npx antibody review        # review locally and flag failures
 npx antibody distill       # turn flags into draft failure patterns
-npx antibody scan          # exit 1 if a trusted failure returned
+npx antibody scan          # exit 0 clean, 1 watching hit, 2 unable to evaluate
 ```
+
+`antibody scan` exits **0** when every watching checker is clean, **1** when a
+watching failure mode hits, and **2** when a watching judge cannot be
+evaluated (refusal, parse error, or network). Calibrating hits and errors
+report but never gate. Skipping a judge because no API key is set is not an
+error. A five-minute keyless walkthrough lives in
+[`examples/support-agent/`](examples/support-agent/).
 
 Put `antibody scan` in CI once your checkers have earned your trust.
 
@@ -185,3 +239,4 @@ Git-native workflow. It is directly inspired by Shreya's
 [error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill).
 
 File formats are documented in [`spec/`](spec/). Antibody is MIT licensed.
+Please report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md).

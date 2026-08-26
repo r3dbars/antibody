@@ -8,8 +8,6 @@ Set Padding 32
 Set TypingSpeed 35ms
 Set Shell "bash"
 
-Hide
-Type "bash assets/agent-demo.sh"
+Type "node src/cli.js demo"
 Enter
-Show
-Sleep 14s
+Sleep 8s

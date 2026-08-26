@@ -5,6 +5,8 @@ description: Run an antibody scan over agent traces, interpret the report, and d
 
 # antibody scan (agent-driven)
 
+Read `spec/philosophy.md` first. Its rules are binding.
+
 You are the self-healing half of antibody: the scan report is structured food
 for you, not just a dashboard for humans.
 
@@ -15,8 +17,10 @@ antibody scan [trace files...] --json
 ```
 
 - No args scans every stored trace; passing files imports them first.
-- Exit 1 means a `watching` failure mode has hits — a known, trusted-checker
-  failure recurred. Exit 0 with hits on `calibrating` modes is informational.
+- Exit 0: every watching checker is clean. Exit 1: a watching mode hit.
+  Exit 2: a watching judge could not be evaluated (refusal, parse, network).
+  Calibrating hits and errors report but never gate. A keyless judge skip is
+  not an error.
 - `--only FM-001` and `--sample 50` control scope and cost.
 
 ## When a watching mode hits
@@ -30,9 +34,11 @@ antibody scan [trace files...] --json
 3. **Diagnose upstream.** The interesting question is what *changed* — a
    prompt edit, a model swap, a tool change. Compare against
    `.antibody/scans/` history (`previousHits` in the report shows the trend).
-4. **Fix and re-scan.** Apply the fix to the agent's prompt/code, regenerate
-   traces if you can, and re-run the same scan. Include before/after hit
-   counts in your summary or PR description — that's the evidence.
+4. **Immunize the confirmed recurrence.** Hand the confirmed failure to the
+   `antibody-immunize` workflow: reproduce it as an executable quiz before
+   changing product behavior, add a healthy control, fix it, and prove the
+   known-bad revision fails while the candidate passes. Then regenerate traces
+   and re-scan when possible. Include both kinds of evidence in the report.
 5. **If you believe the hit is a false positive**, say so with the quote, and
    suggest the human record `antibody verdict <trace> ok --fm FM-###` — their
    verdict feeds calibration, and a drifting judge shows up in
