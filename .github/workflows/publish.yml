@@ -26,9 +26,14 @@ jobs:
       - name: skip if version already published
         id: check
         run: |
-          PUBLISHED=$(npm view antibody version 2>/dev/null || echo none)
           CURRENT=$(node -p "require('./package.json').version")
-          echo "published=$PUBLISHED current=$CURRENT"
+          TAG="${GITHUB_REF_NAME:-}"
+          if [[ "$TAG" == v* && "$TAG" != "v$CURRENT" ]]; then
+            echo "tag $TAG does not match package.json version $CURRENT" >&2
+            exit 1
+          fi
+          PUBLISHED=$(npm view antibody version 2>/dev/null || echo none)
+          echo "published=$PUBLISHED current=$CURRENT tag=$TAG"
           if [ "$PUBLISHED" = "$CURRENT" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
       - name: publish
         if: steps.check.outputs.skip != 'true'
