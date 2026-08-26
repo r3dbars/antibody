@@ -337,12 +337,16 @@ export function createQuiz({ fm, from = null, name = null }, cwd = process.cwd()
     .map((match) => Number(match[1]))
     .reduce((max, value) => Math.max(max, value), 0) + 1;
   const id = `${fm}.${String(next).padStart(3, '0')}`;
-  if (from) loadTrace(from, cwd); // validate that the local evidence exists
+  if (from) {
+    if (!/^tr-[0-9a-f]{12}$/.test(from)) throw new Error('--from expects a trace id like tr-0123456789ab');
+    loadTrace(from, cwd); // validate that the local evidence exists
+  }
+  const quizName = sanitizeQuizName(name);
   const quiz = {
     schema: 'antibody.quiz.v1',
     id,
     failure_mode: fm,
-    name: name || 'describe-observable-behavior',
+    name: quizName,
     status: 'draft',
     input: { synthetic_fixture: 'replace with a synthetic or approved input' },
     expect: [{ path: 'result', expected_output: true }],
@@ -350,7 +354,17 @@ export function createQuiz({ fm, from = null, name = null }, cwd = process.cwd()
   };
   const dir = path.join(assertWorkspace(cwd), 'quizzes');
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${id}-${quiz.name}.yml`);
+  const file = path.resolve(dir, `${id}-${quiz.name}.yml`);
+  if (!file.startsWith(path.resolve(dir) + path.sep)) {
+    throw new Error('--name must stay inside .antibody/quizzes');
+  }
   fs.writeFileSync(file, YAML.stringify(quiz));
   return { id, file: path.relative(cwd, file) };
+}
+
+function sanitizeQuizName(name) {
+  const raw = name || 'describe-observable-behavior';
+  const safe = path.basename(String(raw)).replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!safe) throw new Error('--name must be a simple slug, not a path');
+  return safe;
 }
