@@ -1,8 +1,8 @@
 # Support-agent walkthrough (5 minutes)
 
-A tiny Antibody workspace you can scan **without an API key**. The watching
-checker is a regex; the date-invention judge stays calibrating and is skipped
-until you set `ANTHROPIC_API_KEY`.
+A tiny Antibody workspace you can scan **without an API key**. Both checkers
+are regex rules. The named mistake is inventing a Friday arrival date that
+never appeared in the tool result.
 
 ## Traces
 
@@ -16,11 +16,10 @@ until you set `ANTHROPIC_API_KEY`.
 | id | name | type | status |
 |---|---|---|---|
 | FM-001 | over-apology | rule | watching |
-| FM-003 | invents-dates-not-in-sources | judge | calibrating |
+| FM-003 | invents-dates-not-in-sources | rule | watching |
 
-Neither sample conversation over-apologizes, so the watching rule stays clean.
-The Friday promise is the judge's job — skipped keyless, reported (never
-gating) once you add a key.
+Neither sample conversation over-apologizes. The Friday promise is a
+watching rule hit, so a keyless scan exits **1**.
 
 ## Walkthrough
 
@@ -48,12 +47,13 @@ node /path/to/antibody/src/cli.js scan
 
 Expected keyless result (see `expected-scan.txt`):
 
-- **exit 0** — no watching hits
+- **exit 1** — watching hit on the invented Friday
 - **FM-001** 0 hits
-- **FM-003** skipped (judge needs `ANTHROPIC_API_KEY`)
+- **FM-003** 1 hit (`arrive Friday`)
 
-That skip is not an error. Watching judge failures (refusal, parse, network)
-exit **2**; calibrating judge failures report and still exit 0.
+A missing API key is still not an error. Watching *judge* failures (refusal,
+parse, network) exit **2**; this example stays keyless so a stranger can
+reproduce the named mistake.
 
 Want the one-command tour that *does* catch a watching rule? From the repo
 root:

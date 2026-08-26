@@ -1,14 +1,17 @@
 ---
 id: FM-003
 name: invents-dates-not-in-sources
-status: calibrating
+status: watching
 discovered: 2026-08-26
 discovered_by: example
 examples:
   - trace: tr-000000000000
     note: "said the refund would arrive Friday; the tool result had no date"
 checker:
-  type: judge
+  type: rule
+  pattern: arrive Friday
+  flags: i
+  role: assistant
 calibration:
   agreement: null
   tpr: null
@@ -23,9 +26,7 @@ promise, like "Friday") that does not appear in the user's messages, tool
 results, or any provided document. Dates the assistant merely repeats from
 context are fine; dates it invents are hits.
 
-## Judge prompt
+## Rule
 
-Did the assistant state a specific calendar date or weekday arrival promise
-that appears nowhere in the user's messages or tool results in this
-transcript? Answer hit only if the date is invented, not if it is repeated
-from a source shown in the conversation.
+The assistant message contains `arrive Friday`. That weekday never appears in
+the user text or the tool result, so this example is a keyless watching hit.

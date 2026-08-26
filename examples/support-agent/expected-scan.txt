@@ -1,7 +1,7 @@
-Scanned 2 traces against 1 failure mode.
+Scanned 2 traces against 2 failure modes.
 
 ✓ FM-001 over-apology — 0 hits
-- FM-003 skipped: judge checker needs ANTHROPIC_API_KEY
+✗ FM-003 invents-dates-not-in-sources — 1 hit
+    tr-d9c0a385c04c line 4: "arrive Friday" — matched /arrive Friday/
 
-RESULT: clean — exit 0
-
+RESULT: known failure modes recurred — exit 1
