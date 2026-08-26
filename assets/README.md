@@ -4,9 +4,8 @@ Product proof and README graphics.
 
 | file | used where |
 |---|---|
-| `demo.gif` | coding-agent workflow in the README |
-| `demo.tape` | reproducible VHS source for `demo.gif` |
-| `agent-demo.sh` | staged, timing-controlled agent transcript |
+| `demo.gif` | README illustration (staged capture from an older script; regenerate with `scripts/record-demo.sh` + VHS for a live `antibody demo`) |
+| `demo.tape` | VHS source that runs `node src/cli.js demo` |
 | `working-loop.svg` | review → flag → distill → scan mental model |
 | `working-loop-mobile.svg` | stacked mobile version of the working loop |
 | `trust-ladder.svg` | proposed → calibrating → watching safety model |

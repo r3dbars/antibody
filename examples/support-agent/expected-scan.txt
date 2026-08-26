@@ -1,0 +1,7 @@
+Scanned 2 traces against 1 failure mode.
+
+✓ FM-001 over-apology — 0 hits
+- FM-003 skipped: judge checker needs ANTHROPIC_API_KEY
+
+RESULT: clean — exit 0
+

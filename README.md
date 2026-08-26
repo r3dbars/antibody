@@ -22,7 +22,7 @@ Ask Claude Code, Codex, or another coding agent:
 
 > Use Antibody to check my support agent before I merge.
 
-![A coding agent uses Antibody to scan fresh support-agent conversations, confirms a known fabricated-date failure from the exact quote and tool result, and stops the merge](assets/demo.gif)
+![Staged illustration of a coding-agent workflow. The GIF is not a live capture; run `npx antibody demo` or `scripts/record-demo.sh` for the real CLI.](assets/demo.gif)
 
 The included [`skills/`](skills/) teach the coding agent how to review traces,
 grow the failure registry, investigate matches, and fix regressions without
@@ -120,8 +120,15 @@ Then run the loop whenever you have fresh conversations:
 npx antibody import logs/  # normalize JSON or JSONL conversations
 npx antibody review        # review locally and flag failures
 npx antibody distill       # turn flags into draft failure patterns
-npx antibody scan          # exit 1 if a trusted failure returned
+npx antibody scan          # exit 0 clean, 1 watching hit, 2 unable to evaluate
 ```
+
+`antibody scan` exits **0** when every watching checker is clean, **1** when a
+watching failure mode hits, and **2** when a watching judge cannot be
+evaluated (refusal, parse error, or network). Calibrating hits and errors
+report but never gate. Skipping a judge because no API key is set is not an
+error. A five-minute keyless walkthrough lives in
+[`examples/support-agent/`](examples/support-agent/).
 
 Put `antibody scan` in CI once your checkers have earned your trust.
 
@@ -232,3 +239,4 @@ Git-native workflow. It is directly inspired by Shreya's
 [error-discovery-skill](https://github.com/shreyashankar/error-discovery-skill).
 
 File formats are documented in [`spec/`](spec/). Antibody is MIT licensed.
+Please report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md).
