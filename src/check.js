@@ -44,7 +44,11 @@ export function transcript(trace) {
  * @returns {CheckResult}
  */
 export function runRule(trace, fm) {
-  const re = new RegExp(fm.checker?.pattern ?? '', fm.checker?.flags ?? 'i');
+  const pattern = fm.checker?.pattern;
+  if (!pattern) {
+    return { hit: null, error: 'rule checker is missing a pattern' };
+  }
+  const re = new RegExp(pattern, fm.checker?.flags ?? 'i');
   for (let i = 0; i < trace.messages.length; i++) {
     const m = trace.messages[i];
     if (fm.checker?.role && m.role !== fm.checker.role) continue;

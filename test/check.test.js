@@ -19,6 +19,18 @@ test('rule checker reports hit with line and quote', () => {
   assert.ok(r.quote.toLowerCase().includes('sorry'));
 });
 
+test('empty rule pattern is an error, not a hit on every message', () => {
+  const r = runRule(trace, { id: 'FM-empty', checker: { type: 'rule', pattern: '', role: 'assistant' } });
+  assert.equal(r.hit, null);
+  assert.match(r.error, /missing a pattern/);
+});
+
+test('missing rule pattern is an error, not a hit on every message', () => {
+  const r = runRule(trace, { id: 'FM-missing', checker: { type: 'rule', role: 'assistant' } });
+  assert.equal(r.hit, null);
+  assert.match(r.error, /missing a pattern/);
+});
+
 test('rule checker respects role restriction and misses cleanly', () => {
   const fm = { id: 'FM-001', checker: { type: 'rule', pattern: 'help', role: 'assistant' } };
   assert.equal(runRule(trace, fm).hit, false);
