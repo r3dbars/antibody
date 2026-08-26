@@ -1,3 +1,4 @@
+// @ts-nocheck
 // antibody distill — turn unattributed "bad" verdicts into proposed failure
 // modes. This is agent-shaped work; the shipped skills prefer doing it in your
 // coding agent. This command is the agentless fallback: one LLM call, drafts

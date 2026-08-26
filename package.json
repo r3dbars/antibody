@@ -14,7 +14,9 @@
     "examples"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=20"
@@ -41,5 +43,12 @@
   "bugs": {
     "url": "https://github.com/r3dbars/antibody/issues"
   },
-  "author": "Justin Betker"
+  "author": "Justin Betker",
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^26.3.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "typescript": "^5.9.2"
+  }
 }

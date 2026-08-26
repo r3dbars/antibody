@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Workspace layout and file access. Files are truth; there is no database.
 // Everything lives under .antibody/ in the working directory:
 //   config.json            committed   provider + model defaults
