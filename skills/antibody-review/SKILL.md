@@ -5,6 +5,8 @@ description: Review AI-agent traces with antibody — triage suspicious conversa
 
 # antibody review (agent-driven)
 
+Read `spec/philosophy.md` first. Its rules are binding.
+
 You are operating antibody's review loop for the user. The human's judgment is
 the scarce input — your job is to spend it well: pre-triage so they only read
 suspects, record their verdicts verbatim, and turn patterns into registry
@@ -42,6 +44,8 @@ drafts they approve via git diff.
    either run `antibody distill` or write the FM file yourself in
    `.antibody/registry/` following `spec/registry.md` — status `proposed`,
    their flagged traces as `examples`. Never create it with status `watching`.
+   Also ask whether this is only observational evidence or can be reproduced as
+   an executable quiz. Do not force every strange trace into a quiz.
 6. **Close the loop.** Suggest `antibody calibrate` once a mode has ~5 labels,
    and remind the human that promoting to `watching` is a one-line edit they
    commit.

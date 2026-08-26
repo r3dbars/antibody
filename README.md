@@ -4,16 +4,17 @@
 [![test](https://github.com/r3dbars/antibody/actions/workflows/test.yml/badge.svg)](https://github.com/r3dbars/antibody/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**The immune system for your AI application.** Flag a failure once. Catch it
-whenever it comes back.
+**Turn an AI failure into a permanent regression test.** Discover failures in
+real traces, reproduce them as executable quizzes, and block them from coming
+back.
 
 Your tests catch deterministic bugs. Antibody catches recurring AI behavior you
 never want to ship again: fabricated facts, ignored instructions, broken tool
 use, unhelpful refusals, or whatever *you* decide is wrong.
 
-Antibody is a small CLI and a `.antibody/` folder in your repo. You review real
-conversations, describe failures in plain language, and turn those decisions
-into regression checks.
+Antibody is a small CLI and a `.antibody/` folder in your repo. It has two
+loops: discovery finds recurring mistakes in real traces; immunization runs the
+actual product against durable regression quizzes.
 
 ## Use it with your coding agent
 
@@ -33,7 +34,22 @@ Want to see the keyless CLI demo instead? It runs in a throwaway folder:
 npx antibody demo
 ```
 
-## The whole idea
+## The two loops
+
+```text
+Discovery:    import → review → flag → distill → calibrate → scan
+Immunization: capture → reproduce → quiz → fix → prove → gate
+```
+
+The discovery loop answers, “What kinds of mistakes does this product make in
+the real world?” The immunization loop answers, “Can this version of the
+product avoid a known failure?”
+
+The human still defines what is bad. A trace is evidence, not automatically a
+test. A new quiz must prove the known-bad revision fails and the candidate
+passes before it can become a trusted gate.
+
+## Discover failures
 
 <picture>
   <source media="(max-width: 600px)" srcset="assets/working-loop-mobile.svg">
@@ -57,6 +73,27 @@ If you know regression testing, you already know the mental model:
 
 Antibody does not decide what “good AI” means. You make that call; Antibody
 helps you remember it.
+
+## Immunize the product
+
+A product adapter runs one case through the real product and returns structured
+JSON. A quiz applies small deterministic assertions to that result. Antibody
+does not care whether the product uses Swift, Python, TypeScript, or something
+else.
+
+```text
+.antibody/
+├── product.yml            # how to run this product
+├── quizzes/               # reproducible inputs + expected contracts
+└── suites/                # report-only or blocking collections
+```
+
+Every regression should include a nearby healthy control. This prevents broad
+fixes such as avoiding fabricated dates by never mentioning dates at all.
+
+The contracts are documented in [`spec/product-adapter.md`](spec/product-adapter.md)
+and [`spec/quiz.md`](spec/quiz.md). The ten binding rules are in
+[`spec/philosophy.md`](spec/philosophy.md).
 
 ## Use it on your agent
 
