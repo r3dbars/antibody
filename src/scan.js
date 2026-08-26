@@ -7,7 +7,8 @@
 //
 // Exit codes: 0 clean, 1 watching hit, 2 unable to evaluate. Watching judge
 // errors fail closed (exit 2). Calibrating errors report but do not gate.
-// Keyless judge skips are not errors.
+// Keyless judge skips are not errors when another watching checker still ran.
+// Zero traces, or every watching checker skipped, is unable-to-evaluate.
 import { listFms, listTraceIds, loadTrace, loadConfig, loadPreviousScan, saveScan, loadSuggestions, appendSuggestion, loadVerdicts } from './store.js';
 import { check, pool, hasApiKey } from './check.js';
 
@@ -82,10 +83,14 @@ export async function scan({ traceIds = null, only = null, sample = null, cwd = 
     }
   }
 
+  const watching = fms.filter((/** @type {any} */ f) => f.status === 'watching');
+  const watchingActive = active.filter((/** @type {any} */ f) => f.status === 'watching');
   const watchingErrors = results.filter((r) => r.status === 'watching' && r.errors > 0);
   const gatingHits = results.filter((r) => r.status === 'watching' && r.hits.length > 0);
+  const unableToEvaluateWatching = watching.length > 0
+    && (traces.length === 0 || watchingActive.length === 0);
   /** @type {0|1|2} */
-  const exitCode = watchingErrors.length ? 2 : gatingHits.length ? 1 : 0;
+  const exitCode = watchingErrors.length || unableToEvaluateWatching ? 2 : gatingHits.length ? 1 : 0;
   const summary = {
     at: new Date().toISOString(),
     traces: traces.length,

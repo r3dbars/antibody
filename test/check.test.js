@@ -143,6 +143,22 @@ test('judge network error is fail-closed: hit null, never hit false', async () =
   }
 });
 
+test('non-boolean judge hit is fail-closed, never coerced to false', async () => {
+  mockCreate({
+    stop_reason: 'end_turn',
+    content: [{ type: 'text', text: JSON.stringify({ reason: 'looks clean' }) }],
+    usage: {},
+  });
+  try {
+    const r = await runJudge(judgeTrace, judgeFm, judgeConfig);
+    assert.equal(r.hit, null);
+    assert.notEqual(r.hit, false);
+    assert.match(r.error, /boolean hit/);
+  } finally {
+    setClient(null);
+  }
+});
+
 test('valid negative judge verdict is hit false with no error', async () => {
   mockCreate({
     stop_reason: 'end_turn',

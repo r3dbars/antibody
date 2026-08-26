@@ -151,6 +151,29 @@ test('valid negative watching judge → exit 0', async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('watching modes with zero traces exit 2, not clean', async () => {
+  const { dir } = workspace('watching', true);
+  await keyless(async () => {
+    const summary = await scan({ traceIds: [], cwd: dir });
+    assert.equal(summary.traces, 0);
+    assert.equal(summary.exitCode, 2);
+    assert.match(renderScanReport(summary), /unable to evaluate — exit 2/);
+  });
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('keyless watching-only judge cannot evaluate and exits 2', async () => {
+  const { dir } = workspace('watching');
+  await keyless(async () => {
+    const summary = await scan({ cwd: dir });
+    assert.deepEqual(summary.skipped, ['FM-003']);
+    assert.equal(summary.results.length, 0);
+    assert.equal(summary.exitCode, 2);
+    assert.match(renderScanReport(summary), /unable to evaluate — exit 2/);
+  });
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('keyless judge skip is not an error and does not exit 2', async () => {
   const { dir } = workspace('watching', true);
   await keyless(async () => {
