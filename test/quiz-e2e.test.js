@@ -104,3 +104,14 @@ test('CI gate runs only blocking quizzes and keeps unable-to-evaluate distinct',
   assert.equal(broken.exitCode, 2);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('quiz new keeps traversal names inside the quizzes directory', async () => {
+  const { createQuiz } = await import('../src/quiz.js');
+  const dir = setup();
+  const created = createQuiz({ fm: 'FM-001', name: '../../../.github/workflows/evil' }, dir);
+  assert.match(created.file, /^\.antibody\/quizzes\//);
+  assert.ok(!created.file.includes('..'));
+  assert.ok(fs.existsSync(path.join(dir, created.file)));
+  assert.ok(!fs.existsSync(path.join(dir, '.github', 'workflows', 'evil.yml')));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
