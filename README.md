@@ -91,6 +91,16 @@ else.
 Every regression should include a nearby healthy control. This prevents broad
 fixes such as avoiding fabricated dates by never mentioning dates at all.
 
+```sh
+antibody quiz validate                 # check the committed contracts
+antibody test                          # run report-only and blocking quizzes
+antibody test --compare origin/main    # prove base fails and branch passes
+antibody gate --ci                     # run human-promoted blocking quizzes
+```
+
+Exit `1` means a product regression. Exit `2` means Antibody could not evaluate
+the product. Both block a merge; a broken harness never masquerades as a pass.
+
 The contracts are documented in [`spec/product-adapter.md`](spec/product-adapter.md)
 and [`spec/quiz.md`](spec/quiz.md). The ten binding rules are in
 [`spec/philosophy.md`](spec/philosophy.md).
