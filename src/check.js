@@ -133,7 +133,10 @@ export async function runJudge(trace, fm, config, usage) {
   const text = Array.isArray(response.content) ? (response.content.find((/** @type {any} */ b) => b.type === 'text')?.text ?? '') : '';
   try {
     const v = JSON.parse(text);
-    return { hit: Boolean(v.hit), line: v.line || 0, quote: v.quote || '', reason: v.reason || '' };
+    if (typeof v?.hit !== 'boolean') {
+      return { hit: null, error: 'judge verdict is missing a boolean hit' };
+    }
+    return { hit: v.hit, line: v.line || 0, quote: v.quote || '', reason: v.reason || '' };
   } catch {
     return { hit: null, error: `judge returned unparseable output: ${text.slice(0, 120)}` };
   }
