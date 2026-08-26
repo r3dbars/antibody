@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // antibody — an immune system for your AI agent.
-// Seven commands, plain files, no daemon. `antibody help` for usage.
+// Plain files, no daemon. `antibody help` for usage.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,6 +11,7 @@ import { scan, renderScanReport } from './scan.js';
 import { calibrate, renderCalibration } from './calibrate.js';
 import { distill, renderDistill } from './distill.js';
 import { startServer } from './serve.js';
+import { createQuiz, listQuizzes, renderQuizReport, runQuizzes, validateQuiz } from './quiz.js';
 
 const HELP = `antibody — an immune system for your AI agent
 Flag a failure once. Catch it forever.
@@ -30,6 +31,13 @@ usage: antibody <command> [args]
   scan [files...] [--json]   check traces against every active failure mode;
        [--only FM] [--sample N]   exit 1 if a "watching" mode has hits
   calibrate [--fm FM] [--write]   judge-vs-human agreement, TPR/TNR, suggestions
+  quiz list [--status STATUS]     list executable regression quizzes
+  quiz inspect <id>               print one quiz
+  quiz validate                   validate every quiz
+  quiz new --fm FM-001            create a safe draft quiz skeleton
+       [--from tr-...] [--name name]
+  test [--only ID|FM]             run quizzes through the product adapter
+       [--suite NAME]
 
 Every command accepts --json for agent/script consumption.
 Docs and file formats: spec/ in the antibody repository.`;
@@ -180,6 +188,40 @@ async function main() {
     case 'calibrate': {
       const rows = await calibrate({ only: args.flags.fm ?? null, write: Boolean(args.flags.write) });
       return console.log(asJson ? JSON.stringify(rows) : renderCalibration(rows, Boolean(args.flags.write)));
+    }
+    case 'quiz': {
+      const [subcommand, id] = args._;
+      if (subcommand === 'new') {
+        const created = createQuiz({ fm: args.flags.fm, from: args.flags.from, name: args.flags.name });
+        return console.log(asJson ? JSON.stringify(created) : `created ${created.file}\nstatus: draft — edit the input and behavioral contract before running it`);
+      }
+      const quizzes = listQuizzes();
+      if (subcommand === 'validate') {
+        const errors = quizzes.flatMap((quiz) => validateQuiz(quiz));
+        if (errors.length) throw new Error(errors.join('\n'));
+        const result = { valid: quizzes.length, errors: [] };
+        return console.log(asJson ? JSON.stringify(result) : `✓ ${quizzes.length} quiz${quizzes.length === 1 ? '' : 'zes'} valid`);
+      }
+      if (subcommand === 'inspect') {
+        const quiz = quizzes.find((item) => item.id === id);
+        if (!quiz) throw new Error(`quiz ${id ?? '(missing id)'} not found`);
+        const output = { ...quiz };
+        delete output.file;
+        return console.log(asJson ? JSON.stringify(quiz) : JSON.stringify(output, null, 2));
+      }
+      if (subcommand === 'list' || !subcommand) {
+        const selected = args.flags.status ? quizzes.filter((quiz) => quiz.status === args.flags.status) : quizzes;
+        if (asJson) return console.log(JSON.stringify(selected));
+        if (!selected.length) return console.log('no quizzes found');
+        return console.log(selected.map((quiz) => `${quiz.id}\t${quiz.status}\t${quiz.name}`).join('\n'));
+      }
+      throw new Error('usage: antibody quiz <new|list|inspect|validate>');
+    }
+    case 'test': {
+      const summary = runQuizzes({ only: args.flags.only ?? null, suite: args.flags.suite ?? null });
+      console.log(asJson ? JSON.stringify(summary) : renderQuizReport(summary));
+      process.exitCode = summary.exitCode;
+      return;
     }
     case 'version': {
       const pkg = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
